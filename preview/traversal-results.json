@@ -1,0 +1,70 @@
+{
+  "rooms": 63,
+  "colliders": 1621,
+  "results": [
+    {
+      "name": "Main staircase sits under the right motto bay with a wider corridor",
+      "passed": true
+    },
+    {
+      "name": "Left wing is shortened and its staircase is centered",
+      "passed": true
+    },
+    {
+      "name": "All classroom doors are enterable and can be exited",
+      "passed": true
+    },
+    {
+      "name": "Dãy chính · Cầu thang Dạy tốt – Học tốt stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "A - Dãy chính stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "B - Dãy trái stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "C - Dãy phải stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "D - Nhà gần cổng stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "Both corner corridors connect at all three floors",
+      "passed": true
+    },
+    {
+      "name": "Multipurpose hall doorway and interior",
+      "passed": true
+    },
+    {
+      "name": "No stair routes lead onto roofs",
+      "passed": true
+    },
+    {
+      "name": "Parking second level is accessible",
+      "passed": true
+    },
+    {
+      "name": "Secondary gate approach is passable",
+      "passed": true
+    },
+    {
+      "name": "Water house doorway and volleyball court are reachable",
+      "passed": true
+    },
+    {
+      "name": "The garden and flower pergola remain walkable",
+      "passed": true
+    },
+    {
+      "name": "Jump works from an upper corridor",
+      "passed": true
+    }
+  ]
+}
