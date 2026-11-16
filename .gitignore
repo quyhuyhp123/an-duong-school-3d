@@ -9,4 +9,6 @@ dist/
 *.blend2
 
 # Lời chúc 20/11 người dùng gửi lên (dữ liệu chạy thật)
-data/
+data/*
+!data/events.json
+!data/events.json.bak
