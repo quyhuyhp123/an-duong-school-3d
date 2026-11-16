@@ -69,3 +69,10 @@ Bố cục mới dựa trên ảnh khoanh khuôn viên và mô tả vị trí c�
 - Khi có người bên cạnh, chọn nắm tay, tựa đầu hoặc hôn nhẹ. Người kia phải đồng ý; lời mời hết hạn sau 20 giây. Đứng lên, đổi tư thế, ngắt kết nối hoặc bấm Dừng tương tác đều kết thúc tư thế đôi.
 - Đây là phiên multiplayer trong bộ nhớ, chưa có tài khoản hoặc lưu trạng thái. Các tư thế đôi là hoạt ảnh cách điệu cơ bản.
 - Kiểm tra giao thức: `npm run test:multiplayer`.
+
+## Trang quản lý `/admin`
+
+- Mở `http://localhost:5173/admin` (chạy bằng `npm run dev` hoặc `npm run build && npm start`).
+- Mật khẩu: đặt biến môi trường `ADMIN_PASSWORD`, hoặc dùng mật khẩu tự tạo được in ra terminal và lưu ở `data/admin-password.txt`.
+- Chức năng: chọn sự kiện (Đêm nhạc DJ / Lửa trại), thời gian diễn ra (chỉ khi trời tối 18:30–05:00 hoặc bật ngay), bật/tắt phòng trò chuyện chung, xoá lời chúc 20/11 và tin nhắn.
+- Dữ liệu lưu trong thư mục `data/` (không đưa lên git): `wishes.json`, `events.json`, `chat.json`.

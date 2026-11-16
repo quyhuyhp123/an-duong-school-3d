@@ -31,6 +31,17 @@ test('Left wing is shortened and its staircase is centered',()=>{
   assert(Math.abs((route.path[0][2]+route.path[2][2])/2+19)<.1,'Left stairwell must be near the middle of the remaining wing');
   assert(data.rooms.filter(r=>r.building.startsWith('B')).length===12,'Only the retained left-wing classrooms should remain');
 });
+test('Gate house stairs are centered with two rooms on each side on both floors',()=>{
+  const routes=data.stairs.filter(s=>s.building.startsWith('D'));
+  assert(routes.length===1,'Two floors must be connected by one staircase');
+  assert(Math.abs((routes[0].path[0][0]+routes[0].path[2][0])/2+23)<.01,'Stairs must be centered at x=-23');
+  for(const floor of [1,2]){
+    const rooms=data.rooms.filter(r=>r.building.startsWith('D')&&r.floor===floor);
+    assert.equal(rooms.length,4);
+    assert.equal(rooms.filter(r=>r.inside[0]<-26.5).length,2);
+    assert.equal(rooms.filter(r=>r.inside[0]>-19.5).length,2);
+  }
+});
 test('All classroom doors are enterable and can be exited',()=>{
   for(const r of data.rooms){set(r.door);go(r.inside,r.id+' enter');assert(Math.abs(body.translation().y-r.inside[1])<.35,r.id+' wrong floor');assert(r.aisle,'Classroom must have a clear route to the board');go(r.aisle,r.id+' classroom aisle');go(r.door,r.id+' exit');}
 });

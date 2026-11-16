@@ -1,4 +1,5 @@
 node_modules/
+.tools/
 dist/
 *.blend1
 *.log
@@ -6,3 +7,6 @@ dist/
 .env.*
 !.env.example
 *.blend2
+
+# Lời chúc 20/11 người dùng gửi lên (dữ liệu chạy thật)
+data/

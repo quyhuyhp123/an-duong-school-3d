@@ -1,7 +1,7 @@
-import bpy, math, os, random, json
+import bpy, math, os, random, json, sys
 from mathutils import Vector
 
-ROOT = r'D:\AD_3D'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 random.seed(12)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
@@ -476,7 +476,7 @@ for route in stair_routes:
 for place in places:
     if place['id'].startswith('D'):
         for key in ['position','stairs','roof']:place[key][1]+=.6
-        place['position']=[-7,.98,36]
+        place['position']=[-21.35,1.58,36]
 cube('Gate house raised plinth',(-23,-41,.25),(26,11,.5),'stone',True)
 # Four low steps enter the raised ground floor from the right face.
 for j in range(4):cube('Gate house ground entry step',(-7.5-j*.65,-36,.075+j*.075),(1.2,2,.15+j*.15),'stone',True)
@@ -643,6 +643,9 @@ os.makedirs(ROOT+'/public/models',exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=ROOT+'/blender/an-duong-school.blend')
 bpy.ops.export_scene.gltf(filepath=ROOT+'/public/models/an-duong-school.glb',export_format='GLB',use_selection=False,export_cameras=False,export_lights=False)
 with open(ROOT+'/public/models/colliders.json','w',encoding='utf8') as f: json.dump(colliders,f)
+if '--skip-previews' in sys.argv:
+    print('DONE: BLEND, GLB and walkable collision data created',flush=True)
+    sys.exit(0)
 scene.render.filepath=ROOT+'/preview/campus-overview.png'; bpy.ops.render.render(write_still=True)
 cam.data.type='PERSP'; cam.data.lens=26; cam.location=(8,-15,2.7); cam.rotation_euler=(Vector((0,32,5))-cam.location).to_track_quat('-Z','Y').to_euler()
 scene.render.filepath=ROOT+'/preview/courtyard.png'; bpy.ops.render.render(write_still=True)

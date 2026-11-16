@@ -3,6 +3,11 @@ import {createRoot} from 'react-dom/client';
 import {Canvas} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import {World} from './World';
+import {DayCycle} from './DayCycle';
+import {GreetingBadge,GreetingModal} from './GreetingCard';
+import {useLive,EVENT_INFO,CAMPFIRE_POS} from './live';
+import {EventPill,ChatPanel} from './EventUI';
+import {setEventSound,setListenerPosition,setMusic} from './eventAudio';
 import './style.css';
 
 const photos=Object.entries(import.meta.glob('../image/*',{eager:true,query:'?url',import:'default'})).map(([name,url])=>({name:name.split('/').pop(),url}));
@@ -38,9 +43,16 @@ class ErrorBoundary extends React.Component{
   render(){return this.state.error?<div className="load-error">Không tải được cảnh 3D.<p>{this.state.error.message}</p><button onClick={()=>location.reload()}>Tải lại</button></div>:this.props.children}
 }
 function App(){
-  const [overview,setOverview]=useState(true),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0);
+  const [overview,setOverview]=useState(true),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0),[greet,setGreet]=useState(false);
   const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(null);
-  useEffect(()=>{const fn=e=>{if(e.repeat)return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map]);
+  useEffect(()=>{const fn=e=>{if(e.repeat||greet||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map,greet]);
+  // Sự kiện ban đêm do trang quản lý chọn (DJ / lửa trại) + phòng trò chuyện
+  const live=useLive();
+  useEffect(()=>{setEventSound(live.event,live.event==='dj'?[0,0,-28]:live.event==='campfire'?CAMPFIRE_POS:null)},[live.event]);
+  // Bài nhạc & âm lượng admin chọn cho Đêm nhạc DJ (đổi là áp dụng ngay)
+  const m=live.config?.music;
+  useEffect(()=>{setMusic(m)},[m?.url,m?.volume,m?.startedAt]);
+  useEffect(()=>{setListenerPosition(overview?[1e4,0,1e4]:[position.x,position.y,position.z])},[position,overview]);
   function visit(p){setDestination({position:p,yaw:0,time:Date.now()});setOverview(false);setMap(false)}
   const currentRoom=data?.rooms.find(r=>{
     if(Math.abs(r.inside[1]-position.y)>.75||!r.aisle)return false;
@@ -51,20 +63,18 @@ function App(){
   return <main>
     <ErrorBoundary><Canvas shadows camera={{position:[100,85,112],fov:48,near:.2,far:450}} dpr={[1,1.5]}>
       <color attach="background" args={['#c8dce6']}/><fog attach="fog" args={['#c8dce6',170,320]}/>
-      <hemisphereLight args={['#eaf5ff','#a49a6c',1.1]}/><ambientLight intensity={.35}/>
-      <directionalLight castShadow position={[25,60,30]} intensity={1.8} shadow-mapSize={[2048,2048]} shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-far={180} shadow-bias={-.001} shadow-normalBias={.08}/>
+      <DayCycle/>
       <Suspense fallback={<Html center><div className="loading">Đang mở khuôn viên và các lớp học…</div></Html>}>
-        <World overview={overview} paused={album||map} destination={destination} onPosition={setPosition} onNear={setNear} onData={setData}/>
+        <World event={live.event} overview={overview} paused={album||map||greet} destination={destination} onPosition={setPosition} onNear={setNear} onData={setData}/>
       </Suspense>
     </Canvas></ErrorBoundary>
     <header><div className="seal">AD</div><div><small>HẢI PHÒNG · KHÔNG GIAN KỶ NIỆM</small><h1>THPT An Dương</h1><p>Ký ức sân trường</p></div></header>
+    <GreetingBadge onOpen={()=>{setGreet(true);setAlbum(false);setMap(false)}}/>
     <nav><button onClick={()=>{setMap(true);setAlbum(false)}}>Bản đồ <kbd>M</kbd></button><button onClick={()=>{setAlbum(true);setMap(false)}}>Ảnh tham chiếu ↗</button><button className="primary" onClick={()=>setOverview(v=>!v)}>{overview?'Vào sân trường →':'Xem toàn cảnh ↗'}</button></nav>
-    <aside><span className="dot"/> KHUÔN VIÊN · LỚP HỌC · HÀNG CAU
-      <p>{overview?'Kéo để xoay · Cuộn để phóng to':'WASD đi · Shift chạy · Space nhảy · F ngồi ngay / đứng · Kéo chuột xoay'}</p>
-      {!overview&&<><p className="location">{currentRoom?`Phòng ${currentRoom.id}`:position.y>3?`Cao độ ${(position.y-.85).toFixed(1)} m`:'Đang khám phá khuôn viên'}</p><p>Dãy chính: cầu thang dưới vòm “Tiên học lễ” → lên các tầng</p></>}
-    </aside>
     {!overview&&near&&!album&&!map&&<div className="prompt"><kbd>E</kbd> Xem ký ức sân trường</div>}
-    <footer><span>02 / KHÁM PHÁ SÂN VÀ LỚP HỌC</span><p>{overview?'Mái bằng · Phòng học mở · Cổng phụ · Nhà xe · Nhà đa năng':'Cuộn chuột thu gần camera trong phòng · M bản đồ · R về sân'}</p><span>AN DƯƠNG</span></footer>
+    {live.event&&<EventPill event={live.event} note={live.note} onGo={()=>visit(EVENT_INFO[live.event].spot)}/>}
+    {live.chatOpen&&<ChatPanel messages={live.chat} title={live.event?`Trò chuyện · ${EVENT_INFO[live.event].title}`:'Trò chuyện chung'}/>}
+    {greet&&<GreetingModal onClose={()=>setGreet(false)}/>}
     {map&&<div className="modal" role="dialog" aria-modal="true" aria-label="Bản đồ trường"><section className="map-panel"><button className="close" onClick={()=>setMap(false)} aria-label="Đóng bản đồ">×</button><small>KHUÔN VIÊN THEO ẢNH THAM CHIẾU</small><h2>Từ cổng trường qua hai hàng cau.</h2><div className="map-grid"><CampusMap position={position}/><div className="place-list"><p>Chọn điểm bắt đầu khám phá. Cầu thang đi bộ nối các tầng.</p>{data?.places.map(p=><button key={p.id} onClick={()=>visit(p.position)}>{p.label}<span>→</span></button>)}<button onClick={()=>visit(data?.spawn??[8,1,17])}>Về sân trường <span>→</span></button></div></div><p>Các vị trí và kích thước đang được ước lượng từ ảnh. Bàn ghế, phòng và cầu thang là bố trí cơ bản để khám phá, chưa phải bản đo hiện trạng.</p></section></div>}
     {album&&<div className="modal" role="dialog" aria-modal="true" aria-label="Ảnh tham chiếu"><section><button className="close" onClick={()=>setAlbum(false)} aria-label="Đóng">×</button><small>TƯ LIỆU DỰNG MÔ HÌNH</small><h2>Một góc trường, một ký ức.</h2><img src={photos[index].url} alt={'Ảnh trường An Dương '+(index+1)}/><div className="pager"><button onClick={()=>setIndex((index+photos.length-1)%photos.length)}>← Trước</button><span>{index+1} / {photos.length}</span><button onClick={()=>setIndex((index+1)%photos.length)}>Tiếp →</button></div><p>Ảnh thuộc nhiều thời điểm; mái các tòa nhà được chuyển sang mái bằng theo yêu cầu.</p></section></div>}
   </main>

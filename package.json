@@ -9,7 +9,10 @@
     "preview": "vite preview --host 127.0.0.1",
     "test:traversal": "node scripts/test-traversal.mjs",
     "start": "node server/start.mjs",
-    "test:multiplayer": "node scripts/test-multiplayer.mjs"
+    "test:multiplayer": "node scripts/test-multiplayer.mjs",
+    "test:infra": "node scripts/test-infra.mjs",
+    "test:load": "node scripts/load-test.mjs",
+    "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.0",
@@ -22,5 +25,8 @@
   },
   "devDependencies": {
     "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20.11"
   }
 }

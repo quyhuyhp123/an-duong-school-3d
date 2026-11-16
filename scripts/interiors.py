@@ -47,7 +47,8 @@ def curved_panel(n,x,y,z,w,h,m='cream'):
 
 def building(name,cx,cy,length,floors,angle=0,arched=True):
     before=set(bpy.data.objects);H=3.6;main=name.startswith('A');left=name.startswith('B');stairw=7.6 if main else 7;start=-length/2
-    centered=left or name.startswith('C')
+    gate_house=name.startswith('D')
+    centered=left or name.startswith('C') or gate_house
     sx=21 if main else (0 if centered else length/2-stairw/2)
     stair_left=sx-stairw/2;stair_right=sx+stairw/2
     segments=[(start,stair_left)]
@@ -55,7 +56,10 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
     if main:segments=[(start,-24.8),(-17.2,stair_left),(stair_right,length/2)]
     layout=[]
     for lo,hi in segments:
-        n=(2 if main and lo==stair_right else max(1,int((hi-lo)/5.5))) if main else round((hi-lo)/6)
+        if gate_house:
+            n=2  # Two classrooms on each side of the central stairwell.
+        else:
+            n=(2 if main and lo==stair_right else max(1,int((hi-lo)/5.5))) if main else round((hi-lo)/6)
         for j in range(n):layout.append((lo+(j+.5)*(hi-lo)/n,(hi-lo)/n))
     count=len(layout);front=-6.15 if main else -5.15
     for floor in range(floors+1):
