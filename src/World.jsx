@@ -1,6 +1,8 @@
+import {currentHour} from './DayCycle';
+import {stageDancersVisible} from './stageSchedule';
 import {Multiplayer,network,CoupleBody,SCREEN_HUD} from './multiplayer';
 import {modeCode} from './protocol';
-import {DANCES,dancePose,applyDance,randomDance,STAGE_DANCE,stageMoveOf} from './dances';
+import {DANCES,dancePose,applyDance,randomDance,STAGE_DANCE,stageMoveOf,shouldStopForEvent} from './dances';
 import {STAGE_SLOTS,STAGE_CAPACITY,onStage,nearestFreeSlot,localStage} from './stageSlots';
 import {beatNow,bpmNow} from './eventAudio';
 import {inDJZone} from './live';
@@ -13,7 +15,7 @@ import {NightEvents,CAMPFIRE_SEATS} from './NightEvents';
 import {TeachersDayStage} from './TeachersDayStage';
 import {CourtyardLamps,useLitClassrooms} from './NightLights';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='gate-house-centered-stairs-38';
+export const MODEL_VERSION='three-pines-doorway-cleared-43';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -63,7 +65,7 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   setMenu(false);keys.current={};
  }
  useEffect(()=>{const handler=e=>{const m=e.detail;
-  if(m.type==='performing')startPerform(m.slot,m.position);
+  if(m.type==='performing'){if(stageZone.current)startPerform(m.slot,m.position);else network.send({type:'leave'});}
   if(m.type==='seated'){const [x,y,z]=m.position;exit.current={x,y:1.14,z:13.1};anchor.current={x,y,z};mode.current='normal';setPose('normal');body.current.setTranslation(anchor.current,true);body.current.setNextKinematicTranslation(anchor.current);avatar.current.rotation.y=0;setMenu(true);}
   // Tư thế đôi của chính mình (nắm tay / tựa đầu…) do server xác nhận
   if(m.type==='meta'||m.type==='welcome'){const me=network.meta.get(network.id);setLocalPair(me?.action?{...me,mode:'normal'}:null);}
@@ -99,7 +101,7 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   };
   const up=e=>keys.current[e.code]=false,clear=()=>keys.current={};
   const start=e=>{if(!overview){orbit.current.drag=true;gl.domElement.setPointerCapture(e.pointerId)}},stop=()=>orbit.current.drag=false;
-  const move=e=>{if(orbit.current.drag&&!overview&&!menu){orbit.current.yaw-=e.movementX*.005;orbit.current.pitch=THREE.MathUtils.clamp(orbit.current.pitch+e.movementY*.004,-.15,1.05)}};
+  const move=e=>{if(orbit.current.drag&&!overview&&!paused){orbit.current.yaw-=e.movementX*.005;orbit.current.pitch=THREE.MathUtils.clamp(orbit.current.pitch+e.movementY*.004,-.15,1.05)}};
   const wheel=e=>{if(!overview)orbit.current.distance=THREE.MathUtils.clamp(orbit.current.distance+e.deltaY*.006,1.4,10)};
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);
   const el=gl.domElement;el.addEventListener('pointerdown',start);el.addEventListener('pointerup',stop);el.addEventListener('pointermove',move);el.addEventListener('wheel',wheel);
@@ -144,9 +146,11 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   const canSit=swingDistance<3.5&&p.y<2.3;
   if(canSit!==swingNearbyRef.current){swingNearbyRef.current=canSit;setSwingNearby(canSit);}
   const n=Math.hypot(p.x,p.z+24)<10&&p.y<3;if(n!==near.current){near.current=n;onNear(n)}
-  const st=onStage(p.x,p.y,p.z);if(st!==stageZone.current){stageZone.current=st;setStageHint(st);}
+  const stageAvailable=stageDancersVisible(currentHour(),event);
+  if(!stageAvailable&&performSlot.current!=null)choose('stand');
+  const st=stageAvailable&&onStage(p.x,p.y,p.z);if(st!==stageZone.current){stageZone.current=st;setStageHint(st);}
   const inZone=event==='dj'&&inDJZone(p.x,p.y,p.z);if(inZone!==djZone.current){djZone.current=inZone;setDjHint(inZone);}
-  if(dance.current&&event!=='dj')stopDance(); // nhạc hội kết thúc → dừng nhảy
+  if(shouldStopForEvent(dance.current,event))stopDance(); // nhạc hội kết thúc → dừng nhảy
   // Gửi vị trí: network.sendMove tự gộp (tối đa 10 lần/giây, chỉ khi thay đổi)
   network.sendMove(p.x,p.y,p.z,dance.current?baseYaw.current:avatar.current.rotation.y,modeCode(mode.current,groundSit.current,dance.current));
   if(state.clock.elapsedTime-report.current>.2){report.current=state.clock.elapsedTime;onPosition({x:p.x,y:p.y,z:p.z})}
@@ -154,7 +158,7 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   if(localPair)avatar.current.visible=false;
  });
  const swingNear=swingNearby;
- return <>{!overview&&!paused&&!menu&&seatHint&&mode.current==='stand'&&<Html position={[seatHint.position[0],1.65,seatHint.position[2]]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8}}>F · Ngồi {seatHint.label}</div></Html>}{!overview&&!paused&&!menu&&!seatHint&&swingNear&&mode.current==='stand'&&<Html position={[body.current&&Math.abs(body.current.translation().x-16.5)<Math.abs(body.current.translation().x-23.5)?16.5:23.5,1.81,11.6]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8,fontSize:15,boxShadow:'0 3px 12px #0003'}}>F · Ngồi vào xích đu</div></Html>}<Html {...SCREEN_HUD} style={{pointerEvents:menu?'auto':'none'}}>{!overview&&!paused&&!menu&&(stageUi!=null?<div className="dance-hud dancing stage"><span aria-hidden="true">💃</span><b>Đang múa · vị trí {stageUi+1}/{STAGE_CAPACITY}</b><small>Động tác: {stageMove} · <kbd>F</kbd> hoặc di chuyển để rời</small></div>:stageHint&&mode.current==='stand'&&!seatHint?<div className="dance-hud stage">{stageCount>=STAGE_CAPACITY?<><span aria-hidden="true">🚫</span><b>Cả {STAGE_CAPACITY} vị trí đã có người chơi</b><small>Đợi có người rời đi nhé</small></>:<><kbd>F</kbd><b>Tham gia múa</b><small>thay chỗ một vũ công · {stageCount}/{STAGE_CAPACITY} vị trí đã có người chơi</small></>}</div>:danceUi?<div className="dance-hud dancing"><span className="dance-eq" aria-hidden="true"><i/><i/><i/><i/></span><b>Đang quẩy: {DANCES[danceUi].name}</b><small><kbd>F</kbd> đổi điệu · di chuyển để dừng</small></div>:djHint&&mode.current==='stand'&&!seatHint&&<div className="dance-hud"><kbd>F</kbd><b>Tham gia nhạc hội</b><small>3 điệu quẩy ngẫu nhiên</small></div>)}{menu&&<div className="pose-bar" role="toolbar" aria-label="Chọn tư thế ngồi"><span className="pose-title">Tư thế</span>{[['normal','Ngay ngắn'],['relaxed','Thư giãn'],['stretch','Duỗi chân']].map(([id,label])=><button key={id} className={pose===id?'active':''} onClick={()=>choose(id)}>{label}</button>)}<button className="pose-stand" onClick={()=>choose('stand')}>Đứng lên <kbd>F</kbd></button><button className="pose-close" onClick={()=>setMenu(false)} aria-label="Đóng">×</button></div>}</Html>
+ return <>{!overview&&!paused&&!menu&&seatHint&&mode.current==='stand'&&<Html position={[seatHint.position[0],1.65,seatHint.position[2]]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8}}>F · Ngồi {seatHint.label}</div></Html>}{!overview&&!paused&&!menu&&!seatHint&&swingNear&&mode.current==='stand'&&<Html position={[body.current&&Math.abs(body.current.translation().x-16.5)<Math.abs(body.current.translation().x-23.5)?16.5:23.5,1.81,11.6]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8,fontSize:15,boxShadow:'0 3px 12px #0003'}}>F · Ngồi vào xích đu</div></Html>}<Html {...SCREEN_HUD} style={{pointerEvents:'none'}}>{!overview&&!paused&&!menu&&(stageUi!=null?<div className="dance-hud dancing stage"><span aria-hidden="true">💃</span><b>Đang múa · vị trí {stageUi+1}/{STAGE_CAPACITY}</b><small>Động tác: {stageMove} · <kbd>F</kbd> hoặc di chuyển để rời</small></div>:stageHint&&mode.current==='stand'&&!seatHint?<div className="dance-hud stage">{stageCount>=STAGE_CAPACITY?<><span aria-hidden="true">🚫</span><b>Cả {STAGE_CAPACITY} vị trí đã có người chơi</b><small>Đợi có người rời đi nhé</small></>:<><kbd>F</kbd><b>Tham gia múa</b><small>thay chỗ một vũ công · {stageCount}/{STAGE_CAPACITY} vị trí đã có người chơi</small></>}</div>:danceUi?<div className="dance-hud dancing"><span className="dance-eq" aria-hidden="true"><i/><i/><i/><i/></span><b>Đang quẩy: {DANCES[danceUi].name}</b><small><kbd>F</kbd> đổi điệu · di chuyển để dừng</small></div>:djHint&&mode.current==='stand'&&!seatHint&&<div className="dance-hud"><kbd>F</kbd><b>Tham gia nhạc hội</b><small>3 điệu quẩy ngẫu nhiên</small></div>)}{menu&&<div className="pose-bar" style={{pointerEvents:'auto'}} role="toolbar" aria-label="Chọn tư thế ngồi"><span className="pose-title">Tư thế</span>{[['normal','Ngay ngắn'],['relaxed','Thư giãn'],['stretch','Duỗi chân']].map(([id,label])=><button key={id} className={pose===id?'active':''} onClick={()=>choose(id)}>{label}</button>)}<button className="pose-stand" onClick={()=>choose('stand')}>Đứng lên <kbd>F</kbd></button><button className="pose-close" onClick={()=>setMenu(false)} aria-label="Đóng">×</button></div>}</Html>
  <RigidBody ref={body} type="kinematicPosition" colliders={false} position={data.spawn} enabledRotations={[false,false,false]}><CapsuleCollider ref={capsule} args={[CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS]}/>{localPair&&<CoupleBody player={localPair}/>}<group ref={avatar} position={[0,-.83,0]}>
  <mesh castShadow position={[0,1.15,0]}><capsuleGeometry args={[.25,.36,6,12]}/><meshStandardMaterial color="#edf2ef"/></mesh>
  <mesh castShadow position={[0,1.67,0]}><sphereGeometry args={[.225,20,16]}/><meshStandardMaterial color="#dcad88"/></mesh>
@@ -167,4 +171,4 @@ export const World=memo(function World(props){const json=useLoader(THREE.FileLoa
  useLitClassrooms(scene,data.rooms); // ban đêm: ngẫu nhiên khoảng một nửa số lớp bật đèn
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
  const playerData=useMemo(()=>props.event==='campfire'?{...data,seats:[...(data.seats??[]),...CAMPFIRE_SEATS]}:data,[data,props.event]);
- return <><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage/><CourtyardLamps/><NightEvents event={props.event}/><Player {...props} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</>});
+ return <><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><NightEvents event={props.event}/><Player {...props} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</>});

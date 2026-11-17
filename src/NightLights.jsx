@@ -8,11 +8,23 @@ import {nightFactor} from './DayCycle';
 // 6 cột đèn theo các điểm khoanh trên bản đồ (toạ độ x, z; mặt sân y ≈ 0)
 export const LAMP_POSTS=[
  [-25,6],        // góc vườn, cạnh dãy B
- [-4.8,7.4],     // đầu lối đi từ cổng — bên trái hàng cau
- [6.8,7.4],      // đầu lối đi từ cổng — bên phải hàng cau
+ [-3,10.5,.28],  // trên bồn cau trái, đối xứng hàng phải
+ [5,10.5,.28],   // trên bồn cau phải, đầu hàng
  [25.5,1.5],     // cạnh dãy C
  [25.8,-30.5],   // góc dãy A – dãy C
  [-19.5,-31],    // trước dãy A, bên trái sân khấu
+ [-32,32],      // góc vườn cạnh nhà gần cổng
+ [-3,20,.28],    // giữa hàng cau trái
+ [5,20,.28],    // trên bồn cau phải, giữa hàng
+ [-3,32,.28],    // cuối hàng cau trái, phía cổng
+ [5,32,.28],    // trên bồn cau phải, cuối hàng
+ [29.7,34],     // chỉ dịch đèn dưới, thẳng với đèn trên
+ [54,10],       // đường từ nhà xe tới nhà đa năng
+ [54,24,0,Math.PI/2], // xoay ngang cột đèn cạnh cửa nhà đa năng
+ [73,39],       // góc phải nhà đa năng
+ [29.7,17],     // giữ nguyên vị trí đèn trên
+ [43,26.5],     // đèn xen giữa ba cây bên kia đường
+ [43,35.5],
 ];
 const WARM='#ffd9a0';
 
@@ -43,7 +55,7 @@ export function CourtyardLamps(){
   lights.current.forEach(l=>{if(l)l.intensity=28*n;});
  });
  return <group>
-  {LAMP_POSTS.map(([x,z],i)=><group key={i} position={[x,0,z]}>
+  {LAMP_POSTS.map(([x,z,y=0,yaw=0],i)=><group key={i} position={[x,y,z]} rotation={[0,yaw,0]}>
    <mesh castShadow material={res.pole} position={[0,.25,0]}><cylinderGeometry args={[.2,.26,.5,10]}/></mesh>
    <mesh castShadow material={res.gold} position={[0,.52,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.17,.03,6,16]}/></mesh>
    <mesh castShadow material={res.pole} position={[0,2.3,0]}><cylinderGeometry args={[.06,.09,3.6,10]}/></mesh>
@@ -58,11 +70,16 @@ export function CourtyardLamps(){
    <mesh material={res.gold} position={[0,4.42,0]}><coneGeometry args={[.08,.2,10]}/></mesh>
    <sprite material={res.halo} position={[0,4.22,0]} scale={[1.1,1.1,1]}/>
    {/* vầng sáng loang trên mặt sân */}
-   <mesh material={res.pool} position={[0,.045,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[13,13]}/></mesh>
+   <mesh material={res.pool} position={[0,(x>=5.9&&x<=29.5&&z>=8.2&&z<=40)?.29:.095,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[13,13]}/></mesh>
    <pointLight ref={el=>lights.current[i]=el} position={[0,3.7,0]} color={WARM} intensity={0} distance={16} decay={1.8}/>
   </group>)}
+  {[-7,-3.5,3.5,7].map((x,i)=><group key={`gate-${i}`} position={[x,Math.abs(x)>5?4.7:5.55,47.8]}>
+   <mesh material={res.gold}><boxGeometry args={[.5,.12,.28]}/></mesh>
+   <mesh material={res.bulb} position={[0,-.075,0]}><boxGeometry args={[.4,.035,.2]}/></mesh>
+   <pointLight ref={el=>lights.current[LAMP_POSTS.length+i]=el} position={[0,-.3,0]} color={WARM} intensity={0} distance={12} decay={1.8}/>
+  </group>)}
   {/* không đi xuyên cột đèn */}
-  <RigidBody type="fixed" colliders={false}>{LAMP_POSTS.map(([x,z],i)=><CylinderCollider key={i} args={[1.2,.24]} position={[x,1.2,z]}/>)}</RigidBody>
+  <RigidBody type="fixed" colliders={false}>{LAMP_POSTS.map(([x,z,y=0],i)=><CylinderCollider key={i} args={[1.2,.24]} position={[x,1.2+y,z]}/>)}</RigidBody>
  </group>;
 }
 

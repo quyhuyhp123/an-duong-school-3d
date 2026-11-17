@@ -149,7 +149,7 @@ def bench(x,y,rot=0):
         p=o.location.copy(); o.location=(x+p.x*math.cos(rot)-p.y*math.sin(rot),y+p.x*math.sin(rot)+p.y*math.cos(rot),p.z); o.rotation_euler.z+=rot
 for side in [-1,1]:
     for y in ([9,26] if side==-1 else [-17,-5,8,20]):
-        tree(side*27,y); bench(side*30.25,18 if side==1 and y==8 else y+3,-side*math.pi/2)
+        tree(34 if side==1 and y==-17 else side*27,y); bench(side*30.25,18 if side==1 and y==8 else y+3,-side*math.pi/2)
 
 # The garden now fills the space right up to the first areca planting strip.
 garden_x,garden_y=-18,-20.6
@@ -606,11 +606,19 @@ for cx,cy,w,d,label in [(-38,46,6,7,'WC TRÁI'),(44,45,12,7,'WC PHẢI')]:
     for xx in [cx-1.4,cx+1.4]:
         cube(label+' basin',(xx,cy+1,.75),(.65,.5,.2),'trim')
     places.append({'id':label,'label':label,'position':[cx,.98,-cy+d/2+2]})
-for y in [-42,-35,-28,-21]:
+for y in [-42,-21]:
     cyl('Potted conifer pot',(54,y,.38),.48,.76,'brick',16)
     for j in range(4):
         bpy.ops.mesh.primitive_cone_add(vertices=12,radius1=.65-j*.11,radius2=.04,depth=1.1,location=(54,y,1.2+j*.48))
         bpy.context.object.data.materials.append(M['leaf'])
+
+# Three trees and alternating lamps along the opposite roadside strip.
+for y in [-22,-31,-40]:
+    cyl('Opposite roadside conifer planter',(43,y,.3),.65,.6,'brick',20)
+    cyl('Opposite roadside conifer trunk',(43,y,1),.11,1.5,'trunk',12)
+    for j in range(6):
+        bpy.ops.mesh.primitive_cone_add(vertices=16,radius1=1.05-j*.14,radius2=.04,depth=1.6,location=(43,y,1.55+j*.57))
+        ob=bpy.context.object;ob.name='Opposite roadside pine crown';ob.data.materials.append(M['leaf'])
 
 # Campus edges extend to the new service area, with both entrances left open.
 cube('West perimeter',(-43,0,1),(.2,100,2),'cream',True)

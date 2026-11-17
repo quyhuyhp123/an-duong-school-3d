@@ -9,6 +9,8 @@ export const DANCES=[
  {name:'Múa chào mừng',hint:'Bài múa tập thể trên sân khấu'},
 ];
 export const STAGE_DANCE=4;
+// Stage choreography runs independently of the DJ event, like the NPC dancers.
+export const shouldStopForEvent=(dance,event)=>dance>0&&dance!==STAGE_DANCE&&event!=='dj';
 // Bài múa sân khấu: 4 động tác × 8 nhịp, lặp lại mỗi 32 nhịp — mọi người múa đồng loạt vì cùng theo nhịp nhạc
 export const STAGE_MOVES=['Vẫy chào','Bông hoa nở','Sóng lúa','Xoay vòng cúi chào'];
 export const stageMoveOf=b=>STAGE_MOVES[Math.floor((((b%32)+32)%32)/8)];

@@ -1,3 +1,5 @@
+import {currentHour} from './DayCycle';
+import {stageDancersVisible} from './stageSchedule';
 // Trang trí sân khấu xanh chào mừng Ngày Nhà giáo Việt Nam 20/11:
 // phông nền 20/11, lẵng hoa tươi chân đứng, bồn hoa mép sân khấu, cột bóng bay quanh trụ, dây cờ đuôi nheo, đèn nháy, thảm đỏ.
 // Hoa/lá/bóng/cờ vẽ bằng InstancedMesh (mỗi loại 1 lệnh vẽ) nên vài nghìn bông vẫn nhẹ.
@@ -211,9 +213,9 @@ function NpcDancer({slot,look}){
   </group>)}
  </group></group>;
 }
-function StageDancers(){return STAGE_SLOTS.map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>);}
+function StageDancers({event}){const group=useRef();useFrame(()=>{if(group.current)group.current.visible=stageDancersVisible(currentHour(),event)});return <group ref={group} visible={stageDancersVisible(currentHour(),event)}>{STAGE_SLOTS.map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>)}</group>;}
 
-export function TeachersDayStage(){
+export function TeachersDayStage({event}){
  const decor=useMemo(buildDecor,[]);
  const ribbonTex=useCanvasTexture(512,64,drawRibbon);
  const res=useMemo(()=>({
@@ -233,7 +235,7 @@ export function TeachersDayStage(){
  const balloonRef=useRef();
  return <group>
   <Backdrop/>
-  <StageDancers/>
+  <StageDancers event={event}/>
   {/* đèn vàng ấm dưới mái sân khấu — làm hoa và phông nổi bật khi trời tối */}
   {[-4.5,4.5].map(x=><pointLight key={x} position={[x,5.6,-27.2]} color="#ffd9a0" intensity={18} distance={16} decay={1.6}/>)}
   <FairyLights/>
