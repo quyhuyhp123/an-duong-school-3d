@@ -7,6 +7,8 @@ export const DANCES=[
  {name:'Lướt chân',hint:'Đá chân lướt hai bên, tay đánh theo'},
  {name:'Vỗ tay xoay vòng',hint:'Hai tay trên cao vỗ theo nhịp, xoay người'},
  {name:'Múa chào mừng',hint:'Bài múa tập thể trên sân khấu'},
+ null,null,
+ {name:'Đi xe đạp điện',hint:'Ngồi trên yên, chân đạp, tay cầm ghi đông'}, // 7 — dùng chung đường truyền với điệu nhảy
 ];
 export const STAGE_DANCE=4;
 // Stage choreography runs independently of the DJ event, like the NPC dancers.
@@ -47,6 +49,11 @@ export function dancePose(id,b,out){
    out['thighX'+k]=-.2*bounce;out['shin'+k]=.4*bounce;out['thighZ'+k]=s*.12;
    out['armX'+k]=-2.75;out['armZ'+k]=s*(.55-.5*clap)+.25*Math.sin(P*b/2);
   }
+ }else if(id===7){ // ĐẠP XE: hông ngồi trên yên, đùi đưa ra trước, chân đạp luân phiên; tay cầm ghi đông
+  const crank=Math.sin(b*Math.PI*1.5);
+  for(const s of [-1,1]){const k=s<0?'L':'R',ph=s<0?crank:-crank;
+   out['thighX'+k]=-1.15+.25*ph;out['shin'+k]=1.25-.3*ph;out['thighZ'+k]=s*.05;
+   out['armX'+k]=-1.15;out['armZ'+k]=s*.18;}
  }else if(id===4){ // MÚA CHÀO MỪNG (sân khấu)
   const lb=((b%32)+32)%32,phase=Math.floor(lb/8),pb=lb-phase*8; // nhịp trong động tác 0..8
   if(phase===0){ // VẪY CHÀO: hai tay dang cao vẫy luân phiên, người đung đưa

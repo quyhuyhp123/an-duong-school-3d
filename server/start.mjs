@@ -6,6 +6,7 @@ import {createServer} from 'node:http';
 import {performance} from 'node:perf_hooks';
 import {attachMultiplayer} from './multiplayer.js';
 import {handleWishes} from './wishes.js';
+import {handleBasketball} from './basketball.js';
 import {handleAdmin,announceAdmin} from './admin.js';
 import {handleMetrics,metrics,startMonitorLog} from './metrics.js';
 import {createStatic} from './static.js';
@@ -21,7 +22,7 @@ const server=createServer(async(req,res)=>{
   if(/^\/admin\/?$/.test(req.url)){res.writeHead(302,{Location:'/admin.html'}).end();return;}
   if(handleMetrics(req,res))return;
   if(await handleMedia(req,res))return;
-  if(await handleAdmin(req,res)||await handleWishes(req,res))return;
+  if(await handleAdmin(req,res)||await handleWishes(req,res)||await handleBasketball(req,res))return;
   await serveStatic(req,res);
  }catch(e){console.error('[http]',e);if(!res.headersSent)res.writeHead(500).end('Server error');else res.destroy();}
 });

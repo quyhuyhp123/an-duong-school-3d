@@ -14,7 +14,7 @@ import {performance} from 'node:perf_hooks';
 import {hub,postChat,welcomeMessages} from './events.js';
 import {metrics} from './metrics.js';
 import {clientIp,originAllowed} from './net.js';
-import {STAGE_SLOTS,STAGE_CAPACITY,onStage,nearestFreeSlot} from '../src/stageSlots.js';
+import {STAGE_SLOTS,STAGE_CAPACITY,STAGES,stageAt,onStage,nearestFreeSlot,slotYaw} from '../src/stageSlots.js';
 import {TICK_HZ,MSG_SNAPSHOT,HEADER_BYTES,ENTITY_BYTES,MOVE_BYTES,decodeMove,quantPos,quantYaw,modeCode,GROUND_FLAG} from '../src/protocol.js';
 
 const env=(k,d)=>{const v=Number(process.env[k]);return Number.isFinite(v)&&v>0?v:d;};
@@ -56,7 +56,7 @@ export function attachMultiplayer(server,options={}){
  const broadcastText=text=>{for(const p of active)sendText(p,text);};
  function dropSlow(p){if(p.dropped)return;p.dropped=true;metrics.count('slowClientsDropped');try{p.socket.close(4008,'slow connection')}catch{}setTimeout(()=>p.socket.terminate(),2000).unref?.();}
 
- const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,stage:p.stageSlot});
+ const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,stage:p.stageSlot,look:p.look||0});
  function setPos(p,x,y,z,yaw,mode){
   p.position=[x,y,z];p.yaw=yaw;p.mode=mode;
   X[p.id]=x;Z[p.id]=z;
@@ -91,7 +91,7 @@ export function attachMultiplayer(server,options={}){
   socket.on('pong',()=>{p.alive=true;});
 
   // Gói chào: id của mình + trạng thái ngồi/tương tác của những người khác; vị trí sẽ đến trong gói nhị phân kế tiếp
-  send(p,{type:'welcome',id,tick:TICK_HZ,online:players.size,meta:[...players.values()].filter(q=>q.seat||q.action||q.stageSlot!=null).map(metaOf)});
+  send(p,{type:'welcome',id,tick:TICK_HZ,online:players.size,meta:[...players.values()].filter(q=>q.seat||q.action||q.stageSlot!=null||q.look).map(metaOf)});
   welcomeMessages().then(list=>list.forEach(m=>send(p,m))).catch(()=>{});
   p.joined=true;
 
@@ -117,14 +117,16 @@ export function attachMultiplayer(server,options={}){
     end(p);p.seat={swing:m.swing,slot};setPos(p,x+(slot===0?-.43:.43),1.32,11.6,0,modeCode('normal',false));metaChanged.add(p);
     send(p,{type:'seated',seat:p.seat,position:p.position});return;
    }
+   // hồ sơ nhân vật: mã ngoại hình 0-127 (giáo viên / nữ / đồng phục mùa đông / màu áo / râu) để người khác vẽ đúng trang phục
+   if(m.type==='profile'){const look=Number(m.look);if(Number.isInteger(look)&&look>=0&&look<128&&look!==(p.look||0)){p.look=look;metaChanged.add(p);}return;}
    if(m.type==='leave'){end(p);if(p.seat){p.seat=null;setPos(p,p.position[0],1.14,13.1,p.yaw,0);metaChanged.add(p);}if(p.stageSlot!=null){p.stageSlot=null;metaChanged.add(p);}return;}
    // Múa trên sân khấu: 10 vị trí, mỗi vị trí một người; xếp vào ô trống gần nhất, đủ thì báo
    if(m.type==='perform'){
     if(p.seat||p.stageSlot!=null)return;
     if(!onStage(...p.position)){send(p,{type:'error',message:'Hãy bước lên sân khấu rồi nhấn F để tham gia múa.'});return;}
     const taken=new Set(active.filter(q=>q.stageSlot!=null).map(q=>q.stageSlot)),k=nearestFreeSlot(p.position,taken);
-    if(k<0){send(p,{type:'stage-full',message:`Sân khấu đã đủ ${STAGE_CAPACITY} người múa, bạn đợi lượt sau nhé.`});return;}
-    end(p);p.stageSlot=k;const [x,y,z]=STAGE_SLOTS[k];setPos(p,x,y,z,0,modeCode('stand',false,4));metaChanged.add(p);
+    if(k<0){const name=STAGES[stageAt(...p.position)]?.name??'Sân khấu';send(p,{type:'stage-full',message:`${name[0].toUpperCase()+name.slice(1)} đã đủ ${STAGE_CAPACITY} người múa, bạn đợi lượt sau nhé.`});return;}
+    end(p);p.stageSlot=k;const [x,y,z]=STAGE_SLOTS[k];setPos(p,x,y,z,slotYaw(k),modeCode('stand',false,4));metaChanged.add(p);
     send(p,{type:'performing',slot:k,position:[x,y,z]});return;
    }
    if(m.type==='invite'&&['hand','lean','kiss'].includes(m.action)&&p.seat&&!p.partner){

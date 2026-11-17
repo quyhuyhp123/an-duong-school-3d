@@ -1,6 +1,6 @@
 {
   "rooms": 65,
-  "colliders": 1660,
+  "colliders": 1860,
   "results": [
     {
       "name": "Main staircase sits under the right motto bay with a wider corridor",
@@ -47,11 +47,39 @@
       "passed": true
     },
     {
+      "name": "Hall gallery stairs and rear door",
+      "passed": true
+    },
+    {
+      "name": "Parking ramp foot clear of hall",
+      "passed": true
+    },
+    {
+      "name": "Guard room by the main gate is enterable",
+      "passed": true
+    },
+    {
+      "name": "Front street is walled in",
+      "passed": true
+    },
+    {
       "name": "No stair routes lead onto roofs",
       "passed": true
     },
     {
       "name": "Parking second level is accessible",
+      "passed": true
+    },
+    {
+      "name": "E-bike route: shed bays → connector → east lane → secondary gate and back",
+      "passed": true
+    },
+    {
+      "name": "Washroom: men and women doors lead inside",
+      "passed": true
+    },
+    {
+      "name": "West annex: store, washroom and STEAM greenhouse are reachable",
       "passed": true
     },
     {

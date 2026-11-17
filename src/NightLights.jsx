@@ -4,6 +4,7 @@ import {useFrame} from '@react-three/fiber';
 import {RigidBody,CylinderCollider} from '@react-three/rapier';
 import * as THREE from 'three';
 import {nightFactor} from './DayCycle';
+import {IS_TOUCH} from './device';
 
 // 6 cột đèn theo các điểm khoanh trên bản đồ (toạ độ x, z; mặt sân y ≈ 0)
 export const LAMP_POSTS=[
@@ -20,13 +21,20 @@ export const LAMP_POSTS=[
  [5,32,.28],    // trên bồn cau phải, cuối hàng
  [29.7,34],     // chỉ dịch đèn dưới, thẳng với đèn trên
  [54,10],       // đường từ nhà xe tới nhà đa năng
- [54,24,0,Math.PI/2], // xoay ngang cột đèn cạnh cửa nhà đa năng
- [73,39],       // góc phải nhà đa năng
+ // 2 cột đèn sát tường tây nhà đa năng (x 54.6), đối xứng qua cửa chính (z 33.55); xoay ngang dọc theo tường.
+ // Mỗi cột có 2 chậu hoa to hai bên (src/FlowerPots.jsx → HALL_POTS).
+ [53.9,29.3,0,Math.PI/2],
+ [53.9,37.8,0,Math.PI/2],
  [29.7,17],     // giữ nguyên vị trí đèn trên
  [43,26.5],     // đèn xen giữa ba cây bên kia đường
  [43,35.5],
 ];
 const WARM='#ffd9a0';
+const GATE_LAMPS=[-7,-3.5,3.5,7].map(x=>[x,Math.abs(x)>5?4.7:5.55,47.8]);
+// Mỗi đèn điểm làm MỌI bề mặt trong cảnh phải tính thêm ánh sáng (kể cả khi tắt) → chỉ giữ vài đèn thật, dời tới các
+// cột đèn gần camera nhất (cập nhật 2 lần/giây). Cột ở xa vẫn sáng nhờ bóng đèn phát sáng + vầng sáng vẽ sẵn trên mặt sân.
+const LIGHT_POOL=IS_TOUCH?2:4;
+const LIGHT_SPOTS=[...LAMP_POSTS.map(([x,z,y=0])=>({x,y:y+3.7,z,k:28,d:16})),...GATE_LAMPS.map(([x,y,z])=>({x,y:y-.3,z,k:22,d:12}))];
 
 function radialTexture(){
  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
@@ -50,9 +58,10 @@ export function CourtyardLamps(){
  // Cập nhật theo giờ (nửa giây/lần là đủ — trời tối dần rất chậm)
  useFrame(state=>{
   if(state.clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=state.clock.elapsedTime;
-  const n=nightFactor();
+  const n=nightFactor(),c=state.camera.position;
   res.bulb.emissiveIntensity=2.4*n;res.pool.opacity=.55*n;res.halo.opacity=.85*n;
-  lights.current.forEach(l=>{if(l)l.intensity=28*n;});
+  const near=n>.01?[...LIGHT_SPOTS].sort((a,b)=>((a.x-c.x)**2+(a.z-c.z)**2)-((b.x-c.x)**2+(b.z-c.z)**2)):[];
+  lights.current.forEach((l,i)=>{if(!l)return;const s=near[i];if(s){l.position.set(s.x,s.y,s.z);l.distance=s.d;l.intensity=s.k*n;}else l.intensity=0;});
  });
  return <group>
   {LAMP_POSTS.map(([x,z,y=0,yaw=0],i)=><group key={i} position={[x,y,z]} rotation={[0,yaw,0]}>
@@ -71,13 +80,12 @@ export function CourtyardLamps(){
    <sprite material={res.halo} position={[0,4.22,0]} scale={[1.1,1.1,1]}/>
    {/* vầng sáng loang trên mặt sân */}
    <mesh material={res.pool} position={[0,(x>=5.9&&x<=29.5&&z>=8.2&&z<=40)?.29:.095,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[13,13]}/></mesh>
-   <pointLight ref={el=>lights.current[i]=el} position={[0,3.7,0]} color={WARM} intensity={0} distance={16} decay={1.8}/>
   </group>)}
-  {[-7,-3.5,3.5,7].map((x,i)=><group key={`gate-${i}`} position={[x,Math.abs(x)>5?4.7:5.55,47.8]}>
+  {GATE_LAMPS.map((p,i)=><group key={`gate-${i}`} position={p}>
    <mesh material={res.gold}><boxGeometry args={[.5,.12,.28]}/></mesh>
    <mesh material={res.bulb} position={[0,-.075,0]}><boxGeometry args={[.4,.035,.2]}/></mesh>
-   <pointLight ref={el=>lights.current[LAMP_POSTS.length+i]=el} position={[0,-.3,0]} color={WARM} intensity={0} distance={12} decay={1.8}/>
   </group>)}
+  {Array.from({length:LIGHT_POOL},(_,i)=><pointLight key={'pool'+i} ref={el=>lights.current[i]=el} color={WARM} intensity={0} distance={16} decay={1.8}/>)}
   {/* không đi xuyên cột đèn */}
   <RigidBody type="fixed" colliders={false}>{LAMP_POSTS.map(([x,z,y=0],i)=><CylinderCollider key={i} args={[1.2,.24]} position={[x,1.2+y,z]}/>)}</RigidBody>
  </group>;

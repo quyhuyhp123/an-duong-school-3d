@@ -151,7 +151,7 @@ function RedCarpet(){
 // ---------- 10 vũ công áo dài múa sẵn trên sân khấu ----------
 // Khi người chơi nhấn F tham gia, người đó thay chỗ vũ công ở ô được xếp (vũ công ô đó ẩn đi); rời đi thì vũ công quay lại.
 // Đội hình xen kẽ nữ / nam (hàng trước N-n-N-n-N-n, hàng sau n-N-n-N), ai cũng cầm hoa hai tay
-const DANCER_LOOKS=[
+export const DANCER_LOOKS=[
  {f:true,ao:'#c8102e'},{f:false,ao:'#1d3f8f'},{f:true,ao:'#ffffff'},{f:false,ao:'#8b1020'},{f:true,ao:'#e75480'},{f:false,ao:'#1d3f8f'},
  {f:false,ao:'#8b1020'},{f:true,ao:'#f6c344'},{f:false,ao:'#1d3f8f'},{f:true,ao:'#1d6fb8'},
 ];
@@ -167,12 +167,13 @@ function Bouquet({seed}){
   {blooms.map((b,i)=><mesh key={i} position={b.p}><sphereGeometry args={[.042,7,5]}/><meshStandardMaterial color={b.c} roughness={.6}/></mesh>)}
  </group>;
 }
-function NpcDancer({slot,look}){
+// pos/rot: đặt ở chỗ khác (VD sân khấu nhà đa năng); linked=false → không bị người chơi thay chỗ
+export function NpcDancer({slot,look,pos,rot=0,linked=true}){
  const root=useRef(),panels=useRef(),pose=useMemo(()=>({}),[]);
  const {f,ao}=look,pants=ao==='#ffffff'?'#c8102e':'#ffffff';
  useFrame(()=>{
   const r=root.current;if(!r)return;
-  let taken=localStage.slot===slot;if(!taken)for(const m of network.meta.values())if(m.stage===slot){taken=true;break;}
+  let taken=linked&&localStage.slot===slot;if(linked&&!taken)for(const m of network.meta.values())if(m.stage===slot){taken=true;break;}
   r.parent.visible=!taken;if(taken)return;
   dancePose(STAGE_DANCE,beatNow(),pose);applyDance(r,pose,1); // cùng nhịp với người chơi đang múa → cả đội đồng loạt
   r.position.set(pose.sway,-.83+pose.y,0);r.rotation.set(pose.pitch,pose.yaw,pose.roll);
@@ -180,8 +181,8 @@ function NpcDancer({slot,look}){
   // tà trước xoè ra trước (xoay âm), tà sau xoè ra sau; xoè nhiều hơn khi lắc người hoặc nhấc gối
   if(panels.current){const flare=.08+.6*Math.abs(pose.sway)+Math.max(0,-(pose.thighXL+pose.thighXR))*.3;panels.current.children.forEach((c,i)=>{c.rotation.x=(i?1:-1)*flare;});}
  });
- const [x,y,z]=STAGE_SLOTS[slot],sh=f?.27:.3; // vai nữ hẹp hơn
- return <group position={[x,y,z]} scale={f?.95:1}><group ref={root}>
+ const [x,y,z]=pos??STAGE_SLOTS[slot],sh=f?.27:.3; // vai nữ hẹp hơn
+ return <group position={[x,y,z]} rotation={[0,rot,0]} scale={f?.95:1}><group ref={root}>
   {f?<>
    {/* NỮ: thân áo dài ôm eo, cổ áo vàng, hai tà dài trước/sau, tóc dài cài hoa */}
    <mesh castShadow position={[0,1.18,0]}><capsuleGeometry args={[.2,.34,6,12]}/><meshStandardMaterial color={ao} roughness={.45}/></mesh>
@@ -213,7 +214,7 @@ function NpcDancer({slot,look}){
   </group>)}
  </group></group>;
 }
-function StageDancers({event}){const group=useRef();useFrame(()=>{if(group.current)group.current.visible=stageDancersVisible(currentHour(),event)});return <group ref={group} visible={stageDancersVisible(currentHour(),event)}>{STAGE_SLOTS.map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>)}</group>;}
+function StageDancers({event}){const group=useRef();useFrame(()=>{if(group.current)group.current.visible=stageDancersVisible(currentHour(),event)});return <group ref={group} visible={stageDancersVisible(currentHour(),event)}>{STAGE_SLOTS.slice(0,10).map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>)}</group>;}
 
 export function TeachersDayStage({event}){
  const decor=useMemo(buildDecor,[]);

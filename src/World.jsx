@@ -3,9 +3,11 @@ import {stageDancersVisible} from './stageSchedule';
 import {Multiplayer,network,CoupleBody,SCREEN_HUD} from './multiplayer';
 import {modeCode} from './protocol';
 import {DANCES,dancePose,applyDance,randomDance,STAGE_DANCE,stageMoveOf,shouldStopForEvent} from './dances';
-import {STAGE_SLOTS,STAGE_CAPACITY,onStage,nearestFreeSlot,localStage} from './stageSlots';
+import {STAGE_SLOTS,STAGE_CAPACITY,STAGES,stageAt,stageOf,slotYaw,nearestFreeSlot,localStage} from './stageSlots';
 import {beatNow,bpmNow} from './eventAudio';
 import {inDJZone} from './live';
+import {RIDE,RIDE_SPEED,nearestBay,setBay} from './bikes';
+import {ParkedBikes,RidingBike,bikeColorOf} from './EBikes';
 import React,{useRef,useMemo,useEffect,useState,memo} from 'react';
 import {useFrame,useLoader,useThree} from '@react-three/fiber';
 import {useGLTF,OrbitControls,Html} from '@react-three/drei';
@@ -14,8 +16,19 @@ import * as THREE from 'three';
 import {NightEvents,CAMPFIRE_SEATS} from './NightEvents';
 import {TeachersDayStage} from './TeachersDayStage';
 import {CourtyardLamps,useLitClassrooms} from './NightLights';
+import {WallMurals} from './Murals';
+import {ParkingGuard} from './ParkingGuard';
+import {GateGreeters} from './GateGreeters';
+import {FlowerPots} from './FlowerPots';
+import {getRole} from './role';
+import {HallStage,HALL_SEATS} from './HallStage';
+import {Shops,SHOP_SEATS} from './Shops';
+import {setLocalPlayer} from './localPlayer';
+import {AvatarBody} from './Avatar';
+import {touch} from './device';
+import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='three-pines-doorway-cleared-43';
+export const MODEL_VERSION='iron-gate-67';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -31,25 +44,40 @@ const SIT_POSES={
 const MOVE_KEYS=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'];
 function Player({data,overview,paused,destination,onPosition,onNear,event}){
  const body=useRef(),capsule=useRef(),avatar=useRef(),keys=useRef({}),motion=useRef({vertical:0,jumpHeld:false});
+ const myLook=lookCode(useProfile()),autoWalk=useRef(0); // autoWalk: thời điểm dừng tự đi (vừa vào trường từ cổng)
  const [localPair,setLocalPair]=useState(null);
- const nearbySeat=useRef(null);const [seatHint,setSeatHint]=useState(null);
+ const nearbySeat=useRef(null),seatKey=useRef(''),lastSeatScan=useRef(0),seatFound=useRef(null);const [seatHint,setSeatHint]=useState(null);
  // Nhạc hội DJ: đang đứng trong vùng tham gia? đang nhảy điệu nào (0 = không)?
  const djZone=useRef(false),[djHint,setDjHint]=useState(false),dance=useRef(0),[danceUi,setDanceUi]=useState(0),danceW=useRef(0),danceSince=useRef(0),baseYaw=useRef(0),lastDance=useRef(1),dPose=useMemo(()=>({}),[]);
  function startDance(id){if(!dance.current)baseYaw.current=avatar.current.rotation.y;dance.current=id;lastDance.current=id;setDanceUi(id);danceSince.current=performance.now();keys.current={};}
  function stopDance(){if(!dance.current)return;dance.current=0;setDanceUi(0);avatar.current.rotation.y=baseYaw.current;}
  // Múa trên sân khấu: vị trí đang giữ (0..9) hoặc null; số ô đã có người
- const stageMoveRef=useRef(''),performSlot=useRef(null),stageZone=useRef(false),[stageHint,setStageHint]=useState(false),[stageUi,setStageUi]=useState(null),[stageCount,setStageCount]=useState(0),[stageMove,setStageMove]=useState('');
+ // sân bóng rổ: đứng ở vùng vạch ném phạt của 1 trong 2 rổ (bảng rổ ở z 17.5 và z 38.5, x 17.7) → F mở mini-game ném bóng
+ const courtNear=useRef(false),[courtHint,setCourtHint]=useState(false);
+ const stageWhichRef=useRef(-1),stageMoveRef=useRef(''),performSlot=useRef(null),stageZone=useRef(false),[stageHint,setStageHint]=useState(false),[stageUi,setStageUi]=useState(null),[stageTaken,setStageTaken]=useState([]),[stageWhich,setStageWhich]=useState(-1),[stageMove,setStageMove]=useState('');
  function startPerform(slot,[x,y,z]){
   stopDance();anchor.current={x,y,z};exit.current={x,y,z};performSlot.current=slot;localStage.slot=slot;setStageUi(slot);
   body.current.setTranslation(anchor.current,true);body.current.setNextKinematicTranslation(anchor.current);
-  avatar.current.rotation.y=0;startDance(STAGE_DANCE); // quay mặt về phía khán giả rồi bắt đầu múa
+  avatar.current.rotation.y=slotYaw(slot);startDance(STAGE_DANCE); // quay mặt về phía khán giả (ngoài sân +z, nhà đa năng -z) rồi bắt đầu múa
  }
- useEffect(()=>{const count=()=>setStageCount([...network.meta.values()].filter(m=>m.stage!=null&&m.stage!==undefined).length);count();window.addEventListener('school-stage',count);return()=>window.removeEventListener('school-stage',count);},[]);
+ useEffect(()=>{const count=()=>setStageTaken([...network.meta.values()].filter(m=>m.stage!=null&&m.stage!==undefined).map(m=>m.stage));count();window.addEventListener('school-stage',count);return()=>window.removeEventListener('school-stage',count);},[]);
  const mode=useRef('stand'),anchor=useRef(null),exit=useRef(null),blend=useRef(0),groundSit=useRef(false),walk=useRef(0),report=useRef(0),near=useRef(false);
  const [menu,setMenu]=useState(false),[pose,setPose]=useState('normal'),[swingNearby,setSwingNearby]=useState(false);const swingNearbyRef=useRef(false);const orbit=useRef({yaw:0,pitch:.22,distance:5.8,drag:false});
  const {world,rapier}=useRapier(),{camera,gl}=useThree();const controller=useRef();
  const position=useMemo(()=>new THREE.Vector3(),[]),direction=useMemo(()=>new THREE.Vector3(),[]);
+ // Xe đạp điện: đang đạp xe nào (null = đi bộ), ô xe ở gần (để lấy / đỗ)
+ const riding=useRef(null),[rideUi,setRideUi]=useState(null),bikeNear=useRef(null),[bikeHint,setBikeHint]=useState(null),rideW=useRef(0),pedal=useRef(0),rPose=useMemo(()=>({}),[]),lastBikeCheck=useRef(0);
+ function startRide(bay){
+  stopDance();setBay(bay.id,false);riding.current={from:bay.id,color:bikeColorOf(bay.id)};setRideUi(riding.current);
+  const p=body.current.translation(),pos={x:bay.x,y:p.y,z:bay.z};body.current.setTranslation(pos,true);body.current.setNextKinematicTranslation(pos);avatar.current.rotation.y=bay.yaw;keys.current={};
+ }
+ function parkRide(bay){
+  setBay(bay.id,true);riding.current=null;setRideUi(null);
+  // bước ra lối đi phía trước ô vừa đỗ để không đứng đè lên xe
+  const p=body.current.translation(),pos={x:bay.x+Math.sin(bay.yaw)*1.5,y:p.y,z:bay.z+Math.cos(bay.yaw)*1.5};body.current.setTranslation(pos,true);body.current.setNextKinematicTranslation(pos);keys.current={};
+ }
  function choose(value){
+  if(riding.current){setBay(riding.current.from,true);riding.current=null;setRideUi(null);} // bị dịch chuyển / về sân khi đang đạp xe → trả xe về ô cũ
   stopDance();
   if(performSlot.current!=null){performSlot.current=null;localStage.slot=null;setStageUi(null);} // rời vị trí múa (server nhận 'leave' và trả ô)
   if(value!=='swing')network.send({type:'stop'});
@@ -72,7 +100,7 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   if(m.type==='disconnected'&&anchor.current)choose('stand');
  };window.addEventListener('school-network',handler);return()=>window.removeEventListener('school-network',handler)},[]);
  useEffect(()=>{controller.current=createController(world);return()=>world.removeCharacterController(controller.current)},[world]);
- useEffect(()=>{if(destination&&body.current){choose('stand');const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);body.current.setNextKinematicTranslation({x,y,z});motion.current.vertical=0;orbit.current.yaw=destination.yaw??0;}},[destination]);
+ useEffect(()=>{if(destination&&body.current){choose('stand');const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);body.current.setNextKinematicTranslation({x,y,z});motion.current.vertical=0;orbit.current.yaw=destination.yaw??0;autoWalk.current=destination.autoWalk?performance.now()+destination.autoWalk*1000:0;}},[destination]);
  useEffect(()=>{if(overview){camera.position.set(100,85,112);camera.lookAt(14,0,0)}},[overview]);
  useEffect(()=>{
   const down=e=>{
@@ -80,10 +108,13 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
    if(e.code==='KeyF'&&!e.repeat&&!overview&&!paused){
     e.preventDefault();
+    if(riding.current){if(bikeNear.current)parkRide(bikeNear.current);return;} // đang đạp xe: F đỗ vào ô trống gần nhất
     if(performSlot.current!=null)choose('stand'); // đang múa trên sân khấu: F để rời
     else if(dance.current)startDance(randomDance(dance.current)); // đang nhảy ở sàn: F đổi sang điệu khác
     else if(mode.current!=='stand')choose('stand');
+    else if(bikeNear.current){startRide(bikeNear.current);} // cạnh ô có xe đạp điện: F lấy xe
     else if(nearbySeat.current){choose('bench');setMenu(true);}
+    else if(courtNear.current){keys.current={};window.dispatchEvent(new CustomEvent('open-basketball',{detail:courtNear.current}));}
     else if(stageZone.current){ // trên sân khấu: xin server một vị trí múa
      const p=body.current.translation();
      if(network.id&&network.socket?.readyState===1){network.sendMove(p.x,p.y,p.z,avatar.current.rotation.y,0,true);network.send({type:'perform'});}
@@ -97,11 +128,13 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
    // Đang ngồi mà nhấn phím di chuyển → tự đứng lên rồi đi luôn, không cần nhấn F
    if(!e.repeat&&!overview&&!paused&&mode.current!=='stand'&&MOVE_KEYS.includes(e.code))choose('stand');
    if(MOVE_KEYS.includes(e.code)){if(performSlot.current!=null)choose('stand');else if(dance.current)stopDance();} // đang múa/nhảy mà bấm di chuyển → dừng
+   if(MOVE_KEYS.includes(e.code))autoWalk.current=0; // người chơi tự điều khiển → thôi tự đi
    keys.current[e.code]=true;
   };
   const up=e=>keys.current[e.code]=false,clear=()=>keys.current={};
-  const start=e=>{if(!overview){orbit.current.drag=true;gl.domElement.setPointerCapture(e.pointerId)}},stop=()=>orbit.current.drag=false;
-  const move=e=>{if(orbit.current.drag&&!overview&&!paused){orbit.current.yaw-=e.movementX*.005;orbit.current.pitch=THREE.MathUtils.clamp(orbit.current.pitch+e.movementY*.004,-.15,1.05)}};
+  // xoay camera: tính độ lệch từ vị trí con trỏ trước (chạy cả với ngón tay trên điện thoại — movementX không có trên cảm ứng)
+  const start=e=>{if(!overview){orbit.current.drag=true;orbit.current.lx=e.clientX;orbit.current.ly=e.clientY;gl.domElement.setPointerCapture(e.pointerId)}},stop=()=>orbit.current.drag=false;
+  const move=e=>{if(orbit.current.drag&&!overview&&!paused){const dx=e.clientX-orbit.current.lx,dy=e.clientY-orbit.current.ly;orbit.current.lx=e.clientX;orbit.current.ly=e.clientY;orbit.current.yaw-=dx*.005;orbit.current.pitch=THREE.MathUtils.clamp(orbit.current.pitch+dy*.004,-.15,1.05)}};
   const wheel=e=>{if(!overview)orbit.current.distance=THREE.MathUtils.clamp(orbit.current.distance+e.deltaY*.006,1.4,10)};
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);
   const el=gl.domElement;el.addEventListener('pointerdown',start);el.addEventListener('pointerup',stop);el.addEventListener('pointermove',move);el.addEventListener('wheel',wheel);
@@ -110,10 +143,11 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
  useBeforePhysicsStep(()=>{
   if(!body.current||!controller.current)return;
   if(anchor.current&&!keys.current.KeyR){body.current.setNextKinematicTranslation(anchor.current);walk.current=0;return;}
-  const k=keys.current,active=!overview&&!paused&&!menu&&mode.current==='stand';
-  direction.set(active?(+!!(k.KeyD||k.ArrowRight)-+!!(k.KeyA||k.ArrowLeft)):0,0,active?(+!!(k.KeyS||k.ArrowDown)-+!!(k.KeyW||k.ArrowUp)):0).normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP,orbit.current.yaw);
-  const speed=k.ShiftLeft||k.ShiftRight?6:3.5;walk.current=direction.lengthSq()?speed:0;
-  moveCharacter({body:body.current,collider:capsule.current,controller:controller.current,state:motion.current,direction,speed,jump:active&&!!k.Space,dt:world.timestep});
+  const k=autoWalk.current>performance.now()?{...keys.current,KeyW:true}:keys.current,active=!overview&&!paused&&!menu&&mode.current==='stand';
+  const tc=active&&touch.active; // điện thoại: cần điều khiển ảo (đẩy hết cỡ hoặc bật nút chạy = chạy)
+  direction.set(tc?touch.x:active?(+!!(k.KeyD||k.ArrowRight)-+!!(k.KeyA||k.ArrowLeft)):0,0,tc?touch.y:active?(+!!(k.KeyS||k.ArrowDown)-+!!(k.KeyW||k.ArrowUp)):0).normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP,orbit.current.yaw);
+  const speed=riding.current?RIDE_SPEED:k.ShiftLeft||k.ShiftRight||(tc&&(touch.run||Math.hypot(touch.x,touch.y)>.95))?6:3.5;walk.current=direction.lengthSq()?speed:0;
+  moveCharacter({body:body.current,collider:capsule.current,controller:controller.current,state:motion.current,direction,speed,jump:active&&!riding.current&&!!k.Space,dt:world.timestep});
   if(k.KeyR||body.current.translation().y< -8){choose('stand');const [x,y,z]=data.spawn;body.current.setTranslation({x,y,z},true);body.current.setNextKinematicTranslation({x,y,z});motion.current.vertical=0;keys.current.KeyR=false;}
  });
  useFrame((state,delta)=>{
@@ -138,37 +172,47 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
    avatar.current.position.y+=dPose.y*w;avatar.current.position.x=dPose.sway*w;avatar.current.rotation.z=dPose.roll*w;avatar.current.rotation.x=dPose.pitch*w;
    if(dance.current)avatar.current.rotation.y=baseYaw.current+dPose.yaw;
   }else{avatar.current.position.x=0;avatar.current.rotation.z=0;avatar.current.rotation.x=0;}
-  avatar.current.getWorldPosition(position);const p=body.current.translation();
-  const closest=(data.seats??[]).map(s=>({s,d:Math.hypot(p.x-s.position[0],p.z-s.position[2])})).sort((a,b)=>a.d-b.d)[0];
-  const nextSeat=closest&&closest.d<2&&Math.abs(p.y-closest.s.position[1])<1?closest.s:null;
-  if(nextSeat?.id!==nearbySeat.current?.id){nearbySeat.current=nextSeat;setSeatHint(nextSeat);}
+  // Đạp xe: ngồi trên yên, chân đạp theo tốc độ, tay cầm ghi đông
+  rideW.current=THREE.MathUtils.damp(rideW.current,riding.current?1:0,10,delta);
+  if(rideW.current>.001){if(walk.current)pedal.current+=delta*1.6;dancePose(RIDE,pedal.current,rPose);applyDance(avatar.current,rPose,rideW.current);}
+  avatar.current.getWorldPosition(position);const p=body.current.translation();setLocalPlayer(p.x,p.y,p.z);
+  // chỗ ngồi gần nhất: quét 8 lần/giây (danh sách có ~250 chỗ: ghế đá, ghế nhà đa năng, quán xôi, lửa trại…)
+  let nextSeat=seatFound.current;
+  if(state.clock.elapsedTime-lastSeatScan.current>.125){lastSeatScan.current=state.clock.elapsedTime;let best=null,bd=4;
+   for(const s of data.seats??[]){const dx=p.x-s.position[0],dz=p.z-s.position[2],d=dx*dx+dz*dz;if(d<bd&&Math.abs(p.y-s.position[1])<1){bd=d;best=s;}}
+   nextSeat=seatFound.current=best;}
+  // ghế teacher:true (bàn thầy cô trong nhà đa năng) chỉ nhân vật Thầy cô ngồi được; học sinh chỉ thấy lời nhắc
+  const blockedSeat=!!(nextSeat?.teacher&&getRole()!=='teacher'),key=nextSeat?nextSeat.id+(blockedSeat?'!':''):'';
+  if(key!==seatKey.current){seatKey.current=key;nearbySeat.current=blockedSeat?null:nextSeat;setSeatHint(nextSeat?{...nextSeat,blocked:blockedSeat}:null);}
+  // rổ gần căng tin (z 34.2) → ném bóng 45 giây; rổ gần xích đu (z 21.8) → Chạm rổ
+  const cn=p.y<2.2&&Math.abs(p.x-17.7)<4.2?(Math.abs(p.z-34.2)<3.2?'shoot':Math.abs(p.z-21.8)<3.2?'flap':false):false;if(cn!==courtNear.current){courtNear.current=cn;setCourtHint(cn);}
   const swingDistance=Math.min(Math.hypot(p.x-16.5,p.z-11.6),Math.hypot(p.x-23.5,p.z-11.6));
   const canSit=swingDistance<3.5&&p.y<2.3;
   if(canSit!==swingNearbyRef.current){swingNearbyRef.current=canSit;setSwingNearby(canSit);}
   const n=Math.hypot(p.x,p.z+24)<10&&p.y<3;if(n!==near.current){near.current=n;onNear(n)}
+  // ô xe gần nhất: đang đạp → tìm ô trống để đỗ; đi bộ → tìm ô có xe để lấy (5 lần/giây)
+  if(state.clock.elapsedTime-lastBikeCheck.current>.2){lastBikeCheck.current=state.clock.elapsedTime;
+   const bay=mode.current==='stand'&&performSlot.current==null?nearestBay(p.x,p.y,p.z,!riding.current):null;
+   if(bay?.id!==bikeNear.current?.id){bikeNear.current=bay;setBikeHint(bay);}}
   const stageAvailable=stageDancersVisible(currentHour(),event);
   if(!stageAvailable&&performSlot.current!=null)choose('stand');
-  const st=stageAvailable&&onStage(p.x,p.y,p.z);if(st!==stageZone.current){stageZone.current=st;setStageHint(st);}
+  const which=stageAvailable?stageAt(p.x,p.y,p.z):-1,st=which>=0;if(st!==stageZone.current){stageZone.current=st;setStageHint(st);}if(which!==stageWhichRef.current){stageWhichRef.current=which;setStageWhich(which);}
   const inZone=event==='dj'&&inDJZone(p.x,p.y,p.z);if(inZone!==djZone.current){djZone.current=inZone;setDjHint(inZone);}
   if(shouldStopForEvent(dance.current,event))stopDance(); // nhạc hội kết thúc → dừng nhảy
   // Gửi vị trí: network.sendMove tự gộp (tối đa 10 lần/giây, chỉ khi thay đổi)
-  network.sendMove(p.x,p.y,p.z,dance.current?baseYaw.current:avatar.current.rotation.y,modeCode(mode.current,groundSit.current,dance.current));
+  network.sendMove(p.x,p.y,p.z,dance.current?baseYaw.current:avatar.current.rotation.y,modeCode(mode.current,groundSit.current,riding.current?RIDE:dance.current));
   if(state.clock.elapsedTime-report.current>.2){report.current=state.clock.elapsedTime;onPosition({x:p.x,y:p.y,z:p.z})}
   if(!overview){const o=orbit.current,target=position.clone().add(new THREE.Vector3(0,1.43,0)),offset=new THREE.Vector3(Math.sin(o.yaw)*Math.cos(o.pitch),Math.sin(o.pitch),Math.cos(o.yaw)*Math.cos(o.pitch));const hit=world.castRay(new rapier.Ray(target,offset),o.distance+.2,true,undefined,undefined,capsule.current,body.current);const d=hit?Math.max(.24,hit.timeOfImpact-.22):o.distance,desired=target.clone().addScaledVector(offset,d);if(hit&&camera.position.distanceTo(target)>d+.25)camera.position.copy(desired);else camera.position.lerp(desired,1-Math.exp(-12*Math.min(delta,.05)));camera.lookAt(target);avatar.current.visible=d>2.1;}else avatar.current.visible=true;
   if(localPair)avatar.current.visible=false;
  });
  const swingNear=swingNearby;
- return <>{!overview&&!paused&&!menu&&seatHint&&mode.current==='stand'&&<Html position={[seatHint.position[0],1.65,seatHint.position[2]]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8}}>F · Ngồi {seatHint.label}</div></Html>}{!overview&&!paused&&!menu&&!seatHint&&swingNear&&mode.current==='stand'&&<Html position={[body.current&&Math.abs(body.current.translation().x-16.5)<Math.abs(body.current.translation().x-23.5)?16.5:23.5,1.81,11.6]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8,fontSize:15,boxShadow:'0 3px 12px #0003'}}>F · Ngồi vào xích đu</div></Html>}<Html {...SCREEN_HUD} style={{pointerEvents:'none'}}>{!overview&&!paused&&!menu&&(stageUi!=null?<div className="dance-hud dancing stage"><span aria-hidden="true">💃</span><b>Đang múa · vị trí {stageUi+1}/{STAGE_CAPACITY}</b><small>Động tác: {stageMove} · <kbd>F</kbd> hoặc di chuyển để rời</small></div>:stageHint&&mode.current==='stand'&&!seatHint?<div className="dance-hud stage">{stageCount>=STAGE_CAPACITY?<><span aria-hidden="true">🚫</span><b>Cả {STAGE_CAPACITY} vị trí đã có người chơi</b><small>Đợi có người rời đi nhé</small></>:<><kbd>F</kbd><b>Tham gia múa</b><small>thay chỗ một vũ công · {stageCount}/{STAGE_CAPACITY} vị trí đã có người chơi</small></>}</div>:danceUi?<div className="dance-hud dancing"><span className="dance-eq" aria-hidden="true"><i/><i/><i/><i/></span><b>Đang quẩy: {DANCES[danceUi].name}</b><small><kbd>F</kbd> đổi điệu · di chuyển để dừng</small></div>:djHint&&mode.current==='stand'&&!seatHint&&<div className="dance-hud"><kbd>F</kbd><b>Tham gia nhạc hội</b><small>3 điệu quẩy ngẫu nhiên</small></div>)}{menu&&<div className="pose-bar" style={{pointerEvents:'auto'}} role="toolbar" aria-label="Chọn tư thế ngồi"><span className="pose-title">Tư thế</span>{[['normal','Ngay ngắn'],['relaxed','Thư giãn'],['stretch','Duỗi chân']].map(([id,label])=><button key={id} className={pose===id?'active':''} onClick={()=>choose(id)}>{label}</button>)}<button className="pose-stand" onClick={()=>choose('stand')}>Đứng lên <kbd>F</kbd></button><button className="pose-close" onClick={()=>setMenu(false)} aria-label="Đóng">×</button></div>}</Html>
- <RigidBody ref={body} type="kinematicPosition" colliders={false} position={data.spawn} enabledRotations={[false,false,false]}><CapsuleCollider ref={capsule} args={[CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS]}/>{localPair&&<CoupleBody player={localPair}/>}<group ref={avatar} position={[0,-.83,0]}>
- <mesh castShadow position={[0,1.15,0]}><capsuleGeometry args={[.25,.36,6,12]}/><meshStandardMaterial color="#edf2ef"/></mesh>
- <mesh castShadow position={[0,1.67,0]}><sphereGeometry args={[.225,20,16]}/><meshStandardMaterial color="#dcad88"/></mesh>
- <mesh castShadow position={[0,1.79,-.025]}><sphereGeometry args={[.23,20,12,0,Math.PI*2,0,Math.PI*.58]}/><meshStandardMaterial color="#232b32"/></mesh>
- {[-1,1].map(s=><group key={s}><mesh position={[s*.078,1.69,.204]}><sphereGeometry args={[.022,8,8]}/><meshStandardMaterial color="#253039"/></mesh><group name="thigh" position={[s*.14,.82,0]}><mesh position={[0,-.18,0]}><capsuleGeometry args={[.105,.18,5,12]}/><meshStandardMaterial color="#2c4059"/></mesh><group name="shin" position={[0,-.36,0]}><mesh position={[0,-.18,0]}><capsuleGeometry args={[.09,.18,5,12]}/><meshStandardMaterial color="#2c4059"/></mesh><mesh position={[0,-.37,.07]}><boxGeometry args={[.21,.13,.34]}/><meshStandardMaterial color="#263039"/></mesh></group></group><group name="arm" position={[s*.32,1.36,0]}><mesh position={[0,-.24,0]}><capsuleGeometry args={[.085,.39,5,10]}/><meshStandardMaterial color="#edf2ef"/></mesh><mesh position={[0,-.52,0]}><sphereGeometry args={[.083,10,10]}/><meshStandardMaterial color="#dcad88"/></mesh></group></group>)}
- <mesh position={[0,1.29,.24]}><boxGeometry args={[.055,.27,.025]}/><meshStandardMaterial color="#285775"/></mesh><mesh position={[0,1.17,-.25]}><capsuleGeometry args={[.18,.2,5,12]}/><meshStandardMaterial color="#58766e"/></mesh>
+ const stageCountHere=stageTaken.filter(k=>stageOf(k)===(stageUi!=null?stageOf(stageUi):stageWhich)).length;
+ return <>{!overview&&!paused&&!menu&&seatHint&&mode.current==='stand'&&<Html position={[seatHint.position[0],1.65,seatHint.position[2]]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div className="seat-hint" style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8}}>{seatHint.blocked?'Chỗ ngồi dành cho thầy cô':<>F · Ngồi {seatHint.label}</>}</div></Html>}{!overview&&!paused&&!menu&&!seatHint&&swingNear&&mode.current==='stand'&&<Html position={[body.current&&Math.abs(body.current.translation().x-16.5)<Math.abs(body.current.translation().x-23.5)?16.5:23.5,1.81,11.6]} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div className="seat-hint" style={{background:'rgba(32,41,36,.92)',color:'white',padding:'9px 15px',borderRadius:8,fontSize:15,boxShadow:'0 3px 12px #0003'}}>F · Ngồi vào xích đu</div></Html>}<Html {...SCREEN_HUD} style={{pointerEvents:'none'}}>{!overview&&!paused&&!menu&&(rideUi?<div className="dance-hud ride"><span aria-hidden="true">🚲</span><b>Đang đi xe đạp điện</b><small>{bikeHint?<><kbd>F</kbd> đỗ xe vào ô này</>:'Tới ô trống trong nhà xe (tầng 1 hoặc tầng 2) để đỗ'}</small></div>:bikeHint&&mode.current==='stand'?<div className="dance-hud ride"><kbd>F</kbd><b>Lấy xe đạp điện</b><small>đi ra cổng phụ rồi quay lại, nhấn F ở ô trống để đỗ</small></div>:stageUi!=null?<div className="dance-hud dancing stage"><span aria-hidden="true">💃</span><b>Đang múa · vị trí {stageUi-STAGES[stageOf(stageUi)].from+1}/{STAGE_CAPACITY}</b><small>Động tác: {stageMove} · <kbd>F</kbd> hoặc di chuyển để rời</small></div>:stageHint&&mode.current==='stand'&&!seatHint?<div className="dance-hud stage">{stageCountHere>=STAGE_CAPACITY?<><span aria-hidden="true">🚫</span><b>Cả {STAGE_CAPACITY} vị trí đã có người chơi</b><small>Đợi có người rời đi nhé</small></>:<><kbd>F</kbd><b>Tham gia múa</b><small>thay chỗ một vũ công · {stageCountHere}/{STAGE_CAPACITY} vị trí đã có người chơi</small></>}</div>:danceUi?<div className="dance-hud dancing"><span className="dance-eq" aria-hidden="true"><i/><i/><i/><i/></span><b>Đang quẩy: {DANCES[danceUi].name}</b><small><kbd>F</kbd> đổi điệu · di chuyển để dừng</small></div>:courtHint&&mode.current==='stand'&&!seatHint?<div className="dance-hud court" style={{pointerEvents:'auto',cursor:'pointer'}} onClick={()=>window.dispatchEvent(new CustomEvent('open-basketball',{detail:courtHint}))}><span aria-hidden="true">🏀</span><kbd>F</kbd><b>{courtHint==='flap'?'Chơi Chạm rổ':'Chơi ném bóng rổ'}</b><small>{courtHint==='flap'?'chạm để bóng bay vào rổ · bảng xếp hạng trong ngày':'45 giây tính điểm · bảng xếp hạng trong ngày'}</small></div>:djHint&&mode.current==='stand'&&!seatHint&&<div className="dance-hud"><kbd>F</kbd><b>Tham gia nhạc hội</b><small>3 điệu quẩy ngẫu nhiên</small></div>)}{menu&&<div className="pose-bar" style={{pointerEvents:'auto'}} role="toolbar" aria-label="Chọn tư thế ngồi"><span className="pose-title">Tư thế</span>{[['normal','Ngay ngắn'],['relaxed','Thư giãn'],['stretch','Duỗi chân']].map(([id,label])=><button key={id} className={pose===id?'active':''} onClick={()=>choose(id)}>{label}</button>)}<button className="pose-stand" onClick={()=>choose('stand')}>Đứng lên <kbd>F</kbd></button><button className="pose-close" onClick={()=>setMenu(false)} aria-label="Đóng">×</button></div>}</Html>
+ <RigidBody ref={body} type="kinematicPosition" colliders={false} position={data.spawn} enabledRotations={[false,false,false]}><CapsuleCollider ref={capsule} args={[CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS]}/>{localPair&&<CoupleBody player={localPair}/>}<group ref={avatar} position={[0,-.83,0]}>{rideUi&&<RidingBike color={rideUi.color}/>}<AvatarBody look={myLook}/>
  </group></RigidBody></>;
 }
 export const World=memo(function World(props){const json=useLoader(THREE.FileLoader,`${import.meta.env.BASE_URL}models/campus-data.json?v=${MODEL_VERSION}`),data=useMemo(()=>JSON.parse(json),[json]);const {scene}=useGLTF(`${import.meta.env.BASE_URL}models/an-duong-school.glb?v=${MODEL_VERSION}`);useEffect(()=>{scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});props.onData(data)},[scene,data]);
  useLitClassrooms(scene,data.rooms); // ban đêm: ngẫu nhiên khoảng một nửa số lớp bật đèn
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
- const playerData=useMemo(()=>props.event==='campfire'?{...data,seats:[...(data.seats??[]),...CAMPFIRE_SEATS]}:data,[data,props.event]);
- return <><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><NightEvents event={props.event}/><Player {...props} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</>});
+ const playerData=useMemo(()=>({...data,seats:[...(data.seats??[]),...HALL_SEATS,...SHOP_SEATS,...(props.event==='campfire'?CAMPFIRE_SEATS:[])]}),[data,props.event]);
+ return <><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><HallStage event={props.event}/><Shops/><NightEvents event={props.event}/><Player {...props} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</>});

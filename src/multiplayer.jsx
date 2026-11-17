@@ -6,6 +6,9 @@ import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {encodeMove,decodeSnapshot,yawOf,modeName,GROUND_FLAG,danceOf} from './protocol';
 import {dancePose,applyDance} from './dances';
 import {beatNow} from './eventAudio';
+import {RidingBike} from './EBikes';
+import {AvatarBody} from './Avatar';
+import {getProfile,useProfile,lookCode} from './profile';
 
 // ---------------- Trạng thái mạng dùng chung ----------------
 // Vị trí người khác cập nhật thẳng vào network.remotes (không qua React) để 500+ người không gây render lại liên tục.
@@ -13,6 +16,7 @@ export const network={
  id:null,socket:null,config:null,chat:[],
  remotes:new Map(), // id → {x,y,z,yaw (đang vẽ), tx,ty,tz,tyaw (mục tiêu), mode}
  meta:new Map(),    // id → {seat, action}  (ngồi xích đu / tương tác đôi)
+ looks:new Map(),   // id → mã ngoại hình 0-127 (xem profile.js)
  lastMove:null,
  get online(){return this.remotes.size+(this.id?1:0);},
  get players(){return {length:this.online};}, // tương thích code cũ
@@ -39,7 +43,7 @@ function applyLive(m){
  return m.type==='chat-error';
 }
 // meta: ngồi xích đu (seat), tương tác đôi (action), vị trí múa trên sân khấu (stage: 0..9)
-function setMeta(list){for(const x of list??[]){if(x.seat||x.action||x.stage!=null)network.meta.set(x.id,{seat:x.seat,action:x.action,stage:x.stage??null});else network.meta.delete(x.id);}window.dispatchEvent(new CustomEvent('school-stage'));}
+function setMeta(list){for(const x of list??[]){if(x.look)network.looks.set(x.id,x.look);else network.looks.delete(x.id);if(x.seat||x.action||x.stage!=null)network.meta.set(x.id,{seat:x.seat,action:x.action,stage:x.stage??null});else network.meta.delete(x.id);}window.dispatchEvent(new CustomEvent('school-stage'));}
 function onSnapshot(buffer){
  decodeSnapshot(new DataView(buffer),(id,x,y,z,yq,mode)=>{
   if(id===network.id)return;
@@ -53,6 +57,8 @@ function onSnapshot(buffer){
 
 export function Multiplayer(){
  const [,setVersion]=useState(0),[invite,setInvite]=useState(null),[notice,setNotice]=useState(null);
+ const myProfile=useProfile();
+ useEffect(()=>{if(myProfile)network.send({type:'profile',look:lookCode(myProfile)});},[myProfile]); // đổi nhân vật → báo server
  useEffect(()=>{
   let retry,timer,closed=false,attempt=0;
   const bump=()=>setVersion(v=>v+1);
@@ -62,9 +68,9 @@ export function Multiplayer(){
    ws.onmessage=e=>{
     if(typeof e.data!=='string'){onSnapshot(e.data);return;}
     const m=JSON.parse(e.data);
-    if(m.type==='welcome'){network.id=m.id;network.remotes.clear();network.meta.clear();setMeta(m.meta);bump();}
+    if(m.type==='welcome'){network.id=m.id;network.remotes.clear();network.meta.clear();network.looks.clear();setMeta(m.meta);const pf=getProfile();if(pf)network.send({type:'profile',look:lookCode(pf)});bump();}
     if(m.type==='full'){full=true;setNotice(m.message);}
-    if(m.type==='gone'){for(const id of m.ids){network.remotes.delete(id);network.meta.delete(id);}bump();}
+    if(m.type==='gone'){for(const id of m.ids){network.remotes.delete(id);network.meta.delete(id);network.looks.delete(id);}bump();}
     if(m.type==='meta'){setMeta(m.list);bump();}
     if(m.type==='invite'){setInvite(m);clearTimeout(timer);timer=setTimeout(()=>setInvite(null),20000);}
     if(m.type==='notice'||m.type==='error'||m.type==='stage-full'){setNotice(m.message);setTimeout(()=>setNotice(null),4000);}
@@ -165,25 +171,26 @@ function DetailedAvatar({id}){
  useFrame(()=>{
   const r=network.remotes.get(id);if(!r||!ref.current)return;
   ref.current.position.set(r.x,r.y,r.z);ref.current.rotation.y=r.yaw;
-  const m=network.meta.get(id),key=`${r.mode}|${m?.action??''}|${m?.seat?.slot??''}`;
-  if(key!==poseKey.current){poseKey.current=key;setPose({mode:modeName(r.mode),ground:!!(r.mode&GROUND_FLAG),seat:m?.seat,action:m?.action,dance:danceOf(r.mode)});}
+  const m=network.meta.get(id),look=network.looks.get(id)??0,key=`${r.mode}|${m?.action??''}|${m?.seat?.slot??''}|${look}`;
+  if(key!==poseKey.current){poseKey.current=key;setPose({mode:modeName(r.mode),ground:!!(r.mode&GROUND_FLAG),seat:m?.seat,action:m?.action,dance:danceOf(r.mode),look});}
  });
- return <group ref={ref}>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id}/>:<CoupleBody player={pose}/>)}</group>;
+ return <group ref={ref}>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id} look={pose.look}/>:pose.action||pose.seat?<CoupleBody player={pose}/>:<PosedBody pose={pose}/>)}</group>;
+}
+
+// Người chơi khác đứng / ngồi ở gần: đúng trang phục, gập đùi & gối theo tư thế ngồi ghế hoặc ngồi bệt
+function PosedBody({pose}){
+ const ref=useRef(),standing=pose.mode==='stand',ground=!standing&&pose.ground;
+ React.useLayoutEffect(()=>{ref.current?.traverse(o=>{if(o.name==='thigh')o.rotation.x=standing?0:ground?-2.2:-Math.PI/2;if(o.name==='shin')o.rotation.x=standing?0:ground?1.4:Math.PI/2;});},[standing,ground,pose.look]);
+ return <group ref={ref} position={[0,standing?-.83:ground?-1.55:-1.21,0]}><AvatarBody look={pose.look}/></group>;
 }
 
 // Nhân vật đang nhảy (người chơi khác ở gần): cùng dáng với nhân vật của mình, có khớp vai/đùi/gối để nhảy đúng điệu
-function DancerBody({dance,seed}){
+function DancerBody({dance,seed,look=0}){
  const root=useRef(),pose=useMemo(()=>({}),[]);
  useFrame(()=>{if(!root.current)return;const b=beatNow()+(dance===4?0:seed*.07);dancePose(dance,b,pose);/* múa sân khấu: không lệch nhịp để cả nhóm đồng loạt */applyDance(root.current,pose,1);root.current.position.set(pose.sway,-.83+pose.y,0);root.current.rotation.set(pose.pitch,pose.yaw,pose.roll);});
  return <group ref={root} position={[0,-.83,0]}>
-  <mesh castShadow position={[0,1.15,0]}><capsuleGeometry args={[.25,.36,6,12]}/><meshStandardMaterial color="#edf2ef"/></mesh>
-  <mesh castShadow position={[0,1.67,0]}><sphereGeometry args={[.225,16,12]}/><meshStandardMaterial color="#dcad88"/></mesh>
-  <mesh position={[0,1.79,-.025]}><sphereGeometry args={[.23,16,10,0,Math.PI*2,0,Math.PI*.58]}/><meshStandardMaterial color="#232b32"/></mesh>
-  {[-1,1].map(s=><group key={s}>
-   <group name="thigh" position={[s*.14,.82,0]}><mesh position={[0,-.18,0]}><capsuleGeometry args={[.1,.18,5,10]}/><meshStandardMaterial color="#2c4059"/></mesh>
-    <group name="shin" position={[0,-.36,0]}><mesh position={[0,-.18,0]}><capsuleGeometry args={[.09,.18,5,10]}/><meshStandardMaterial color="#2c4059"/></mesh><mesh position={[0,-.37,.07]}><boxGeometry args={[.21,.13,.34]}/><meshStandardMaterial color="#263039"/></mesh></group></group>
-   <group name="arm" position={[s*.32,1.36,0]}><mesh position={[0,-.24,0]}><capsuleGeometry args={[.085,.39,5,10]}/><meshStandardMaterial color="#edf2ef"/></mesh><mesh position={[0,-.52,0]}><sphereGeometry args={[.083,10,10]}/><meshStandardMaterial color="#dcad88"/></mesh></group>
-  </group>)}
+  {dance===7&&<RidingBike/>/* người khác đang đi xe đạp điện */}
+  <AvatarBody look={look}/>
  </group>;
 }
 

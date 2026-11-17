@@ -57,7 +57,24 @@ try{
   const again=await until(()=>dancers[3].messages.filter(m=>m.type==='performing')[1]);assert.equal(again.slot,got[5].slot,'người mất kết nối được trả chỗ');
   function c2(){return b;}
  }
+ // Sân khấu nhà đa năng: 10 chỗ riêng (ô 10-19), quay mặt -z; ngoài sân đầy không ảnh hưởng trong nhà
+ {
+  const hall=[];for(let i=0;i<11;i++)hall.push(await client());
+  for(const d of hall)d.move(63+Math.random()*2,2.04,41.5);await new Promise(r=>setTimeout(r,60));
+  for(const d of hall.slice(0,10))d.send({type:'perform'});
+  const got=await until(()=>{const s=hall.slice(0,10).map(d=>d.messages.find(m=>m.type==='performing'));return s.every(Boolean)&&s;});
+  assert.equal(new Set(got.map(m=>m.slot)).size,10,'10 người nhận 10 vị trí khác nhau trong nhà');
+  assert.ok(got.every(m=>m.slot>=10&&m.slot<20),'chỉ nhận ô của sân khấu nhà đa năng');
+  hall[10].send({type:'perform'});const full=await until(()=>hall[10].messages.find(m=>m.type==='stage-full'));
+  assert.ok(full.message.includes('nhà đa năng'),'báo đầy đúng sân khấu');
+ }
+ // Hồ sơ nhân vật: mã ngoại hình hợp lệ được phát cho người khác; mã sai bị bỏ qua; người vào sau nhận ngay trong welcome
+ {
+  const t=await client();t.send({type:'profile',look:3});await until(()=>meta(a,t.id)?.look===3);
+  t.send({type:'profile',look:128});t.send({type:'profile',look:'x'});await new Promise(r=>setTimeout(r,80));assert.equal(meta(a,t.id).look,3,'mã ngoại hình sai bị bỏ qua');
+  const late=await client();await until(()=>late.messages.find(m=>m.type==='welcome'));assert.equal(meta(late,t.id)?.look,3,'người vào sau thấy đúng trang phục');
+ }
  // Gói rác / sai kích thước bị bỏ qua, không làm sập server
  a.ws.send(Buffer.from([1,2,3]));a.ws.send('not json');a.ws.send(JSON.stringify(null));await new Promise(r=>setTimeout(r,50));assert.equal(a.ws.readyState,1);
- console.log('PASS binary positions, delta suppression, distinct seats, stage slots (10 exclusive, full, reuse, disconnect), full seat rejection, consent, refusal, forged acceptance rejection, paired action, leave cancellation, disconnect cleanup, malformed input');
+ console.log('PASS binary positions, delta suppression, distinct seats, stage slots (10 exclusive, full, reuse, disconnect; hall stage 10 separate), full seat rejection, consent, refusal, forged acceptance rejection, paired action, leave cancellation, disconnect cleanup, avatar looks, malformed input');
 }finally{for(const c of clients)c.ws.terminate();await new Promise(r=>wss.close(r));await new Promise(r=>server.close(r));}

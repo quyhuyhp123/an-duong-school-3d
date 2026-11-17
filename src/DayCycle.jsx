@@ -1,7 +1,10 @@
 import React,{useRef} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
+import {localPlayer} from './localPlayer';
+import {IS_TOUCH} from './device';
 import {Stars} from '@react-three/drei';
 import * as THREE from 'three';
+const tmp=new THREE.Vector3();
 
 // Ánh sáng theo giờ thực trong ngày (giờ máy người chơi).
 // Mỗi mốc: giờ, màu trời/sương mù, màu trời & đất của đèn bán cầu, cường độ, ánh sáng nền, màu & cường độ mặt trời (ban đêm là ánh trăng).
@@ -42,7 +45,16 @@ function sample(h){
 
 export function DayCycle(){
  const {scene}=useThree();
- const hemi=useRef(),amb=useRef(),sun=useRef(),stars=useRef(),last=useRef(-1);
+ const hemi=useRef(),amb=useRef(),sun=useRef(),stars=useRef(),last=useRef(-1),sunDir=useRef(new THREE.Vector3(25,60,30));
+ // Vùng đổ bóng đi theo nhân vật (bám lưới 4 m để bóng không rung): nét hơn & ít vật phải vẽ vào bản đồ bóng
+ useFrame(()=>{
+  const l=sun.current;if(!l)return;const p=localPlayer.ready?localPlayer:{x:14,z:0};
+  const cx=Math.round(p.x/4)*4,cz=Math.round(p.z/4)*4;
+  tmp.set(cx,0,cz).add(sunDir.current);
+  if(l.target.position.x!==cx||l.target.position.z!==cz||!l.position.equals(tmp)){
+   l.target.position.set(cx,0,cz);l.position.copy(tmp);l.target.updateMatrixWorld();
+  }
+ });
  useFrame(state=>{
   // Thời gian thay đổi chậm nên chỉ cập nhật mỗi giây
   if(state.clock.elapsedTime-last.current<1&&last.current>=0)return;last.current=state.clock.elapsedTime;
@@ -53,13 +65,13 @@ export function DayCycle(){
   amb.current.intensity=s.amb;
   // Mặt trời mọc hướng đông (6h), lên đỉnh (12h), lặn hướng tây (18h); ban đêm đèn này thành mặt trăng đi cung đối diện
   const a=(h-6)/12*Math.PI,elev=Math.max(.25,Math.abs(Math.sin(a)));
-  sun.current.position.set(-Math.cos(a)*80,elev*65,30);
+  sunDir.current.set(-Math.cos(a)*80,elev*65,30);
   sun.current.color.copy(s.sun);sun.current.intensity=s.sunI;
   if(stars.current)stars.current.visible=s.stars>.05;
  });
  return <>
   <hemisphereLight ref={hemi} args={['#eaf5ff','#a49a6c',1.1]}/><ambientLight ref={amb} intensity={.35}/>
-  <directionalLight ref={sun} castShadow position={[25,60,30]} intensity={1.8} shadow-mapSize={[2048,2048]} shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-far={260} shadow-bias={-.001} shadow-normalBias={.08}/>
+  <directionalLight ref={sun} castShadow position={[25,60,30]} intensity={1.8} shadow-mapSize={IS_TOUCH?[1024,1024]:[2048,2048]} shadow-camera-left={-42} shadow-camera-right={42} shadow-camera-top={42} shadow-camera-bottom={-42} shadow-camera-far={260} shadow-bias={-.001} shadow-normalBias={.08}/>
   <group ref={stars}><Stars radius={220} depth={60} count={2500} factor={6} fade speed={.4}/></group>
  </>;
 }

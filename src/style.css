@@ -101,3 +101,119 @@ header{background:#fffaf0e8;padding:14px 18px;border-radius:8px}
 .dance-eq i{width:3px;background:#ff2e88;border-radius:2px;animation:eq .5s ease-in-out infinite alternate}
 .dance-eq i:nth-child(2){animation-delay:.12s;background:#20d5ff}.dance-eq i:nth-child(3){animation-delay:.25s;background:#ffd400}.dance-eq i:nth-child(4){animation-delay:.37s;background:#2bff88}
 @keyframes eq{from{height:3px}to{height:16px}}
+.dance-hud.ride{box-shadow:0 0 0 1px #2bb67366,0 8px 26px #2bb67340}
+/* Bong bóng thoại của bác bảo vệ nhà xe */
+.guard-bubble{position:relative;padding:8px 14px;border-radius:14px;background:#fffdf5;color:#2f3a24;font-size:14px;font-weight:600;white-space:nowrap;box-shadow:0 6px 18px #0003;border:2px solid #5b6b3a;animation:pose-in .18s ease-out}
+.guard-bubble::after{content:'';position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#5b6b3a;border-bottom:0}
+
+/* Bong bóng Sao đỏ ở cổng trường; nhắc đi muộn */
+.guard-bubble.saodo{border-color:#d3242c;color:#5a1418}.guard-bubble.saodo::after{border-top-color:#d3242c}.guard-bubble.saodo b{color:#d3242c}
+.guard-bubble.late{background:#fff4f0}
+/* Chọn vai trò nhân vật (học sinh / thầy cô) */
+.role-switch{display:flex;border:1px solid #d3d1bd;border-radius:5px;overflow:hidden;background:#fffaf0}.role-switch button{border:0;border-radius:0;background:transparent}.role-switch button.active{background:#7a3b2e;color:white}
+
+/* Lời mời của cô bán hàng (câu dài → xuống dòng) */
+.guard-bubble.shop{white-space:normal;width:270px;text-align:center;border-color:#c47a2c}.guard-bubble.shop::after{border-top-color:#c47a2c}
+
+/* ---------- Màn hình mở đầu: chào mừng & chọn nhân vật ---------- */
+.ob-screen{position:absolute;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background-size:cover;background-position:center;overflow:auto}
+.ob-card{position:relative;width:min(640px,100%);max-height:calc(100dvh - 48px);overflow:auto;background:#fbf6ec;border-radius:16px;border-top:6px solid #f2c94c;padding:30px 34px;box-shadow:0 24px 60px #0008;color:#2f2a24;font-size:15px;line-height:1.6}
+.ob-creator{width:min(900px,100%)}
+.ob-eyebrow{font-size:11px;letter-spacing:2.5px;font-weight:700;color:#a3302a}
+.ob-card h1,.ob-card h2{font-family:'Be Vietnam Pro',sans-serif;color:#8f2a22;margin:6px 0 2px;font-size:34px;font-weight:800}
+.ob-card h2{font-size:28px;margin-bottom:16px}
+.ob-sub{margin:0 0 12px;color:#a3302a;font-size:18px}
+.ob-features p{margin:8px 0}
+.ob-controls{margin:14px 0;padding-left:18px;font-size:14px}.ob-controls li{margin:6px 0}
+.ob-key{display:inline-block;background:#fff;color:#8f2a22;border:1px solid #e3c98c;border-bottom-width:3px;border-radius:5px;padding:1px 7px;margin:0 2px;font:600 12px ui-monospace,monospace}
+.ob-saved{color:#2f6b34;font-weight:600}
+.ob-actions{display:flex;gap:12px;margin-top:14px}
+.ob-primary,.ob-secondary{flex:1;padding:14px 18px;border-radius:10px;font-size:17px;font-weight:700}
+.ob-primary{background:linear-gradient(#d8432f,#b02a1d);border:0;border-bottom:4px solid #7c1a10;color:#fff}
+.ob-primary.wide{flex:1 1 100%}.ob-primary:disabled{opacity:.45;cursor:not-allowed}
+.ob-secondary{background:#fff8ea;border:1px solid #e3c98c;color:#8f2a22;flex:.6}
+.ob-grid{display:grid;grid-template-columns:240px 1fr;gap:24px}
+.ob-preview{background:radial-gradient(circle at 50% 40%,#fff6cf,#f2d27a);border-radius:12px;height:340px;overflow:hidden}
+.ob-form{display:flex;flex-direction:column;gap:10px}
+.ob-seg{display:flex;background:#f3e3bf;border-radius:10px;padding:3px}
+.ob-seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:9px;font-size:14px;color:#6b4a2a}
+.ob-seg button.on{background:#8f2a22;color:#fff;font-weight:700}
+.ob-note{margin:0;color:#2f6b34;font-size:13px}
+.ob-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#4a3a2a}
+.ob-form input,.ob-form select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid #e3c98c;border-radius:8px;background:#fff}
+.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ob-summary{margin:2px 0 0;color:#2f6b34;font-size:13px}
+.ob-fine{margin:4px 0 0;font-size:12px;color:#7a6a58}
+@media(max-width:700px){.ob-card{padding:22px 18px}.ob-grid{grid-template-columns:1fr}.ob-preview{height:240px}.ob-card h1{font-size:28px}}
+
+/* chọn màu áo dài / vest của giáo viên */
+.ob-swatches{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ob-swatches span{font-size:13px;font-weight:600;color:#4a3a2a;margin-right:4px}
+.ob-swatches button{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8c49a}
+.ob-swatches button.on{box-shadow:0 0 0 3px #8f2a22}
+
+.loading-overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none}
+
+/* ---------- Mini-game ném bóng rổ ---------- */
+.bb-modal{z-index:40}
+.bb-panel{width:min(1240px,97vw)!important;max-height:96dvh}
+.bb-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;margin-top:8px}
+.bb-hud{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;margin-bottom:8px;color:#344536}.bb-hud b{font-size:18px;color:#8f2a22}
+.bb-hud .bb-spot{margin-left:auto}.bb-hurry{animation:bb-blink .5s steps(2) infinite}@keyframes bb-blink{50%{opacity:.35}}
+.bb-canvas-wrap{position:relative}
+.bb-canvas{width:100%;aspect-ratio:900/520;display:block;border-radius:10px;touch-action:none;cursor:crosshair;background:#eaf4f8}
+.bb-tip{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#fffaf0ee;border-radius:10px;padding:10px 16px;font-size:13px;text-align:center;pointer-events:none;box-shadow:0 4px 14px #0002;width:min(560px,90%)}
+.bb-over{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:#10251fb3;border-radius:10px;color:#fff;padding:20px}
+.bb-over h3{margin:0;font-size:26px}.bb-final{font-size:54px;font-weight:800;margin:4px 0;color:#ffd84d}.bb-over p{color:#fff;font-size:14px}
+.bb-actions{display:flex;gap:10px;justify-content:center;margin-top:10px}.bb-actions button{flex:0 0 auto;min-width:150px}
+.bb-board{background:#fff7e6;border-radius:10px;padding:14px 16px;font-size:13px;overflow:auto;max-height:70dvh}
+.bb-board h3{font-size:15px;margin:4px 0 2px;font-family:'Be Vietnam Pro',sans-serif;color:#8f2a22}.bb-board>small{color:#7b674e;letter-spacing:0;font-size:11px}
+.bb-list{list-style:none;padding:0;margin:8px 0 14px}.bb-list li{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px}.bb-list li:nth-child(odd){background:#fbeed2}
+.bb-rank{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e8dcc0;font-weight:700;font-size:12px;flex:none}
+.bb-list li.top1 .bb-rank{background:#f6c344}.bb-list li.top2 .bb-rank{background:#cfd4d8}.bb-list li.top3 .bb-rank{background:#e0a46a}
+.bb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bb-name em{color:#7b674e;font-style:normal}
+.bb-list b{color:#8f2a22;font-size:15px}.bb-empty{color:#7b674e;font-style:italic}.bb-me{background:#e7f2e2;border-radius:7px;padding:7px 9px;color:#2f6b34}
+.bb-error{color:#b3261e!important}
+@media(max-width:900px){.bb-layout{grid-template-columns:1fr}.bb-board{max-height:none}}
+
+.bb-canvas.tap{cursor:pointer;background:#2d3b4a}
+
+.bb-canvas.tap{aspect-ratio:620/520;max-width:640px;margin:0 auto}
+
+/* ---------- Bố cục HUD mới: trái trên (tên trường, 20/11, sự kiện) · phải trên (nhân vật, bản đồ) ---------- */
+.hud-left{position:absolute;top:22px;left:24px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;z-index:3;max-width:calc(100vw - 150px)}
+.hud-left header{position:static;pointer-events:auto;cursor:pointer;user-select:none}
+.hud-left .greet-badge,.hud-left .event-pill{position:static}
+header.compact .hdr-text{display:none}
+header .seal{display:grid}
+.top-nav{position:absolute;top:22px;right:22px;left:auto;display:flex;gap:8px;z-index:3}
+.top-nav button{display:flex;align-items:center;gap:6px;padding:10px 14px}
+.top-nav .ico{font-size:15px;line-height:1}.top-nav kbd{margin:0 0 0 4px}
+/* chữ gợi ý ngồi */
+.seat-hint{font-size:14px}
+/* ---------- Cần điều khiển cảm ứng ---------- */
+.tc-layer{position:absolute;inset:0;pointer-events:none;z-index:4}
+.tc-stick{position:absolute;left:22px;bottom:26px;width:124px;height:124px;border-radius:50%;background:#ffffff26;border:2px solid #ffffff66;backdrop-filter:blur(3px);pointer-events:auto;touch-action:none}
+.tc-knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#fffaf0e6;box-shadow:0 3px 10px #0004}
+.tc-buttons{position:absolute;right:18px;bottom:24px;display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:10px;align-items:end;justify-items:center;pointer-events:none}
+.tc-btn{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:50%;display:grid;place-items:center;padding:0;border:2px solid #ffffff88;color:#fff;font-weight:800;box-shadow:0 4px 12px #0004}
+.tc-act{width:72px;height:72px;font-size:26px;background:#c8102ee6;grid-column:2;grid-row:2}
+.tc-jump{width:58px;height:58px;font-size:24px;background:#344e3bd9;grid-column:1;grid-row:2}
+.tc-small{width:46px;height:46px;font-size:20px;background:#141a2ecc}.tc-small.on{background:#f2a516e6}
+/* ---------- Điện thoại / màn nhỏ: mọi thứ gọn lại ---------- */
+@media (max-width:760px),(pointer:coarse){
+ .hud-left{top:12px;left:12px;gap:8px}
+ .hud-left header{padding:0;gap:10px}.hud-left header .seal{width:42px;height:42px;font-size:17px;background:#faf4e9e6}
+ .hud-left h1{font-size:20px;margin:2px 0}.hud-left header small{font-size:8px;letter-spacing:1.4px}.hud-left header p{font-size:11px}
+ .greet-badge{padding:4px 10px 4px 4px;gap:6px}.greet-badge-flower{width:30px;height:30px}.greet-badge-flower svg{width:24px;height:24px}
+ .greet-badge-text b{font-size:15px}.greet-badge-text small{display:none}
+ .event-pill{padding:5px 6px 5px 9px;font-size:11px;max-width:min(300px,calc(100vw - 24px))}
+ .top-nav{top:12px;right:12px;gap:6px}.top-nav button{padding:9px 10px;border-radius:10px}.top-nav .lbl,.top-nav kbd{display:none}.top-nav .ico{font-size:18px}
+ .dance-hud{bottom:168px;padding:6px 12px;gap:7px;max-width:calc(100vw - 24px)}.dance-hud b{font-size:12px}.dance-hud small{display:none}.dance-hud kbd{font-size:11px;padding:2px 6px}
+ .seat-hint{font-size:12px!important;padding:6px 10px!important}
+ .guard-bubble{font-size:12px;padding:6px 10px}.guard-bubble.shop{width:210px}
+ .prompt{bottom:170px;padding:9px 14px;font-size:12px}
+ .pose-bar{top:auto;bottom:168px;transform:translateX(-50%) scale(.9)}
+}
+
+@media (max-width:760px),(pointer:coarse){.top-nav button{width:44px;height:44px;padding:0;justify-content:center;min-width:0}}
+.top-nav span{margin-left:0}
