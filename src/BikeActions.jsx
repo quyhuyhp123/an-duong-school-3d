@@ -1,0 +1,16 @@
+import React,{useEffect,useMemo,useState,useRef} from 'react';
+import {useFrame} from '@react-three/fiber';
+import {Html} from '@react-three/drei';
+import * as THREE from 'three';
+import {network,SCREEN_HUD} from './multiplayer';
+import {localPlayer} from './localPlayer';
+let audio;
+function bell(){try{audio??=new AudioContext();audio.resume();for(const delay of [0,.13]){const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=1700;o.type='sine';g.gain.setValueAtTime(.12,audio.currentTime+delay);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+delay+.65);o.connect(g);g.connect(audio.destination);o.start(audio.currentTime+delay);o.stop(audio.currentTime+delay+.7);}}catch{}}
+export function BikeActions({riding}){
+ const [on,setOn]=useState(false),[driver,setDriver]=useState(null),[request,setRequest]=useState(null),[mounted,setMounted]=useState(false);let near=null;
+ useEffect(()=>{if(!riding)setOn(false)},[riding]);
+ useFrame(()=>{if(riding||mounted)return;const p=localPlayer;let found=null,d=9;for(const r of network.remotes.values()){const dd=(r.x-p.x)**2+(r.z-p.z)**2;if(((r.mode>>3)&7)===7&&dd<d&&Math.abs(r.y-p.y)<1.5){found=r.id;d=dd;}}if(found!==driver)setDriver(found);});
+ useEffect(()=>{const key=e=>{if(e.repeat||e.target?.closest?.('input,textarea,select'))return;if(riding&&e.code==='KeyB'){bell();network.send({type:'bike-bell'});}if(riding&&e.code==='KeyL')setOn(v=>!v);};const msg=e=>{const m=e.detail;if(m.type==='bike-bell')bell();if(m.type==='bike-request'){setRequest(m.passenger);setTimeout(()=>setRequest(null),15000);}if(m.type==='bike-mounted')setMounted(true);if(m.type==='bike-exit'||m.type==='disconnected'){setMounted(false);setRequest(null);}};window.addEventListener('keydown',key);window.addEventListener('school-network',msg);return()=>{window.removeEventListener('keydown',key);window.removeEventListener('school-network',msg)}},[riding]);
+ return <><Html {...SCREEN_HUD} style={{pointerEvents:'none'}}><div style={{position:'absolute',right:24,bottom:190,background:'#fff9ed',padding:12,borderRadius:12,color:'#234035',pointerEvents:'auto'}}>{riding&&<><button onClick={()=>{bell();network.send({type:'bike-bell'})}}>B · Chuông</button><button onClick={()=>setOn(v=>!v)}>L · {on?'Tắt':'Bật'} đèn</button></>}{!riding&&!mounted&&driver&&<button onClick={()=>network.send({type:'bike-join',driver})}>Xin ngồi sau xe</button>}{mounted&&<button onClick={()=>network.send({type:'bike-dismount'})}>Xuống xe</button>}{request&&<div><p>Có người xin ngồi sau xe. Bạn đồng ý?</p><button onClick={()=>{network.send({type:'bike-answer',passenger:request,accept:true});setRequest(null)}}>Đồng ý</button><button onClick={()=>{network.send({type:'bike-answer',passenger:request,accept:false});setRequest(null)}}>Từ chối</button></div>}</div></Html>{riding&&on&&<BikeBeam/>}</>;
+}
+function BikeBeam(){const ref=useRef(),target=useMemo(()=>new THREE.Object3D(),[]);useFrame(()=>{const p=localPlayer;if(ref.current)ref.current.position.set(p.x,p.y+.2,p.z);target.position.set(p.x+Math.sin(p.yaw??0)*8,p.y-.2,p.z+Math.cos(p.yaw??0)*8)});return <><primitive object={target}/><spotLight ref={ref} target={target} color="#fff4cf" intensity={45} distance={20} angle={.45} penumbra={.5}/></>}

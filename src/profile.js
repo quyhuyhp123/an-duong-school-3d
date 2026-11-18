@@ -18,7 +18,7 @@ if(profile)setRole(profile.role);
 const subs=new Set();
 export const getProfile=()=>profile;
 export function saveProfile(p){
- profile={role:p.role==='teacher'?'teacher':'student',gender:p.gender==='f'?'f':'m',season:p.season==='winter'?'winter':'summer',color:Math.min(5,Math.max(0,p.color|0)),beard:p.beard!==false,
+ profile={transport:p.transport==='bike'?'bike':'walk',role:p.role==='teacher'?'teacher':'student',gender:p.gender==='f'?'f':'m',season:p.season==='winter'?'winter':'summer',color:Math.min(5,Math.max(0,p.color|0)),beard:p.beard!==false,
   name:String(p.name||'').trim().slice(0,40),cls:String(p.cls||'').trim().slice(0,12),year:String(p.year||''),subject:String(p.subject||'').trim().slice(0,30)};
  try{localStorage.setItem(KEY,JSON.stringify(profile))}catch{}
  setRole(profile.role);subs.forEach(f=>f(profile));return profile;

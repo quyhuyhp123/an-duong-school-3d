@@ -1,3 +1,5 @@
+import {characterIdentity} from '../src/characterIdentity.js';
+import {bikeActions} from './bikeActions.js';
 // Máy chủ thời gian thực cho một khuôn viên chung (500–800 người).
 //
 // Thiết kế:
@@ -56,17 +58,18 @@ export function attachMultiplayer(server,options={}){
  const broadcastText=text=>{for(const p of active)sendText(p,text);};
  function dropSlow(p){if(p.dropped)return;p.dropped=true;metrics.count('slowClientsDropped');try{p.socket.close(4008,'slow connection')}catch{}setTimeout(()=>p.socket.terminate(),2000).unref?.();}
 
- const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,stage:p.stageSlot,look:p.look||0});
+ const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,actionFrom:p.actionFrom??null,stage:p.stageSlot,look:p.look||0,identity:p.identity??null});
  function setPos(p,x,y,z,yaw,mode){
   p.position=[x,y,z];p.yaw=yaw;p.mode=mode;
   X[p.id]=x;Z[p.id]=z;
   const o=p.id*ENTITY_BYTES;records.writeUInt16LE(p.id,o);records.writeInt16LE(quantPos(x),o+2);records.writeInt16LE(quantPos(y),o+4);records.writeInt16LE(quantPos(z),o+6);records.writeUInt8(quantYaw(yaw),o+8);records.writeUInt8(mode&255,o+9);
   version[p.id]=++globalVersion;
  }
+ const bikeControl=bikeActions({players,send,setPos});wss.on('close',()=>bikeControl.close());
  function end(p){
   if(!p)return;const partner=players.get(p.partner);
-  if(p.action||p.partner){p.partner=null;p.action=null;metaChanged.add(p);}
-  if(partner){partner.partner=null;partner.action=null;metaChanged.add(partner);}
+  if(p.action||p.partner){p.partner=null;p.action=null;p.actionFrom=null;metaChanged.add(p);}
+  if(partner){partner.partner=null;partner.action=null;partner.actionFrom=null;metaChanged.add(partner);}
   for(const [id,i] of invites)if(i.from===p.id||i.to===p.id)invites.delete(id);
  }
 
@@ -85,15 +88,15 @@ export function attachMultiplayer(server,options={}){
   }
   const id=freeSlots.shift();
   const p={id,uid:randomUUID(),socket,ip:clientIp(req),position:[8,1,17],yaw:0,mode:0,seat:null,partner:null,action:null,stageSlot:null,
-   lastSent:new Uint32Array(CAP),alive:true,tokens:cfg.msgBurst,tokenAt:Date.now(),blocked:0,blockedAt:Date.now(),slowSince:0,joined:false,dropped:false};
+   lastSent:new Uint32Array(CAP),alive:true,tokens:cfg.msgBurst,tokenAt:Date.now(),blocked:0,blockedAt:Date.now(),slowSince:0,joined:false,hasPosition:false,dropped:false};
   players.set(id,p);active.push(p);setPos(p,8,1,17,0,0);
   metrics.count('connectionsTotal');metrics.gauge('players',players.size);
   socket.on('pong',()=>{p.alive=true;});
 
   // Gói chào: id của mình + trạng thái ngồi/tương tác của những người khác; vị trí sẽ đến trong gói nhị phân kế tiếp
-  send(p,{type:'welcome',id,tick:TICK_HZ,online:players.size,meta:[...players.values()].filter(q=>q.seat||q.action||q.stageSlot!=null||q.look).map(metaOf)});
+  send(p,{type:'welcome',id,uid:p.uid,tick:TICK_HZ,online:players.size,meta:[...players.values()].filter(q=>q.seat||q.action||q.stageSlot!=null||q.look||q.identity?.name).map(metaOf)});
   welcomeMessages().then(list=>list.forEach(m=>send(p,m))).catch(()=>{});
-  p.joined=true;
+  p.joined=true;bikeControl.sync(p);
 
   socket.on('message',(raw,isBinary)=>{
    metrics.count('bytesIn',raw.length);metrics.count('messagesIn');
@@ -102,13 +105,14 @@ export function attachMultiplayer(server,options={}){
    if(p.tokens<1){metrics.count('rateLimitedMessages');if(now-p.blockedAt>10000){p.blocked=0;p.blockedAt=now;}if(++p.blocked>cfg.abuseLimit)socket.close(1008,'rate limit');return;}
    p.tokens-=1;
    if(isBinary){
-    if(raw.length!==MOVE_BYTES||p.seat)return;
+    if(raw.length!==MOVE_BYTES||p.seat||p.bikeDriver)return;
     const m=decodeMove(new DataView(raw.buffer,raw.byteOffset,raw.byteLength));
-    if(m)setPos(p,m.x,m.y,m.z,m.yaw/256*Math.PI*2,m.mode);
+    if(m){p.hasPosition=true;setPos(p,m.x,m.y,m.z,m.yaw/256*Math.PI*2,m.mode);}
     return;
    }
    let m;try{m=JSON.parse(raw);}catch{return;}
    if(!m||typeof m!=='object')return;
+   if(bikeControl.handle(p,m))return;
    if(m.type==='chat'){postChat(p,m).then(error=>{if(error)send(p,{type:'chat-error',message:error})}).catch(()=>{});return;}
    if(m.type==='sit'&&[0,1].includes(m.swing)){
     const x=[16.5,23.5][m.swing];if(Math.hypot(p.position[0]-x,p.position[2]-11.6)>4||p.position[1]>2.5)return;
@@ -118,7 +122,11 @@ export function attachMultiplayer(server,options={}){
     send(p,{type:'seated',seat:p.seat,position:p.position});return;
    }
    // hồ sơ nhân vật: mã ngoại hình 0-127 (giáo viên / nữ / đồng phục mùa đông / màu áo / râu) để người khác vẽ đúng trang phục
-   if(m.type==='profile'){const look=Number(m.look);if(Number.isInteger(look)&&look>=0&&look<128&&look!==(p.look||0)){p.look=look;metaChanged.add(p);}return;}
+   if(m.type==='profile'){
+    const look=Number(m.look);if(Number.isInteger(look)&&look>=0&&look<128&&look!==(p.look||0)){p.look=look;metaChanged.add(p);}
+    if(m.identity&&typeof m.identity==='object'){const identity=characterIdentity(m.identity);if(JSON.stringify(identity)!==JSON.stringify(p.identity)){p.identity=identity;metaChanged.add(p);}}
+    return;
+   }
    if(m.type==='leave'){end(p);if(p.seat){p.seat=null;setPos(p,p.position[0],1.14,13.1,p.yaw,0);metaChanged.add(p);}if(p.stageSlot!=null){p.stageSlot=null;metaChanged.add(p);}return;}
    // Múa trên sân khấu: 10 vị trí, mỗi vị trí một người; xếp vào ô trống gần nhất, đủ thì báo
    if(m.type==='perform'){
@@ -136,7 +144,7 @@ export function attachMultiplayer(server,options={}){
    }
    if(m.type==='respond'){
     const i=invites.get(m.id);if(!i||i.to!==p.id)return;invites.delete(m.id);const q=players.get(i.from);
-    if(m.accept===true&&i.expires>Date.now()&&q?.seat&&p.seat?.swing===q.seat.swing&&!p.partner&&!q.partner){p.partner=q.id;q.partner=p.id;p.action=q.action=i.action;metaChanged.add(p);metaChanged.add(q);}
+    if(m.accept===true&&i.expires>Date.now()&&q?.seat&&p.seat?.swing===q.seat.swing&&!p.partner&&!q.partner){p.partner=q.id;q.partner=p.id;p.action=q.action=i.action;p.actionFrom=q.actionFrom=q.id;metaChanged.add(p);metaChanged.add(q);}
     else send(q,{type:'notice',message:'Lời mời đã bị từ chối hoặc hết hạn.'});
     return;
    }
@@ -184,7 +192,7 @@ export function attachMultiplayer(server,options={}){
    let nearN=0,otherN=0;binCount.fill(0);
    for(let k=0;k<n;k++){
     const id=ids[k];
-    if(id===myId||version[id]<=last[id])continue; // không đổi từ lần gửi trước → bỏ (chỉ gửi phần thay đổi)
+    if(!active[k].hasPosition||id===myId||version[id]<=last[id])continue; // không đổi từ lần gửi trước → bỏ (chỉ gửi phần thay đổi)
     const dx=X[id]-mx,dz=Z[id]-mz,d2=dx*dx+dz*dz;
     if(d2<nearR2){nearIds[nearN]=id;nearD2[nearN]=d2;nearN++;binCount[Math.min(BINS-1,(Math.sqrt(d2)/cfg.nearRadius*BINS)|0)]++;}
     else if((tickNo+id)%(d2<midR2?cfg.midPeriod:cfg.farPeriod)===0)otherIds[otherN++]=id;

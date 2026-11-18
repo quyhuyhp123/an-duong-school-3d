@@ -26,6 +26,22 @@ try{
  const a=await client(),b=await client(),c=await client();
  // Vị trí đi qua gói nhị phân theo tick
  a.move(5,1,5,1.2);await until(()=>b.seen.get(a.id)?.x===5&&c.seen.get(a.id)?.z===5);
+ // Identity is synchronized even with the default look code; late arrivals get it too.
+ a.send({type:'profile',look:0,identity:{name:'Nguyen Van An',cls:'12A3',year:'2015-2018'}});
+ await until(()=>meta(c,a.id)?.identity?.name==='Nguyen Van An');
+ assert.equal(meta(c,a.id).identity.cls,'12A3');
+ const late=await client();assert.equal(meta(late,a.id).identity.year,'2015-2018');late.ws.close();
+ a.send({type:'profile',look:0,identity:{name:'Updated',cls:'x'.repeat(100),year:'y'.repeat(100)}});
+ await until(()=>meta(c,a.id)?.identity?.name==='Updated');
+ assert.equal(meta(c,a.id).identity.cls.length,12);assert.equal(meta(c,a.id).identity.year.length,24);
+ a.send({type:'profile',look:1,identity:{role:'teacher',name:'Teacher',subject:'Math',cls:'12A3',year:'2015-2018'}});
+ await until(()=>meta(c,a.id)?.identity?.role==='teacher');
+ assert.equal(meta(c,a.id).identity.subject,'Math');
+ assert.equal(meta(c,a.id).identity.year,'');assert.equal(meta(c,a.id).identity.cls,'');
+ const teacherViewer=await client();assert.equal(meta(teacherViewer,a.id).identity.subject,'Math');teacherViewer.ws.close();
+ // The server relays the wheelie flag without changing the bicycle dance code.
+ a.move(5,1,5,0,56|64);await until(()=>b.seen.get(a.id)?.mode===(56|64));
+ a.move(5,1,5,0,0);await until(()=>b.seen.get(a.id)?.mode===0);
  // Delta: không di chuyển thì không gửi lại
  const before=b.seen.get(a.id).at;await new Promise(r=>setTimeout(r,400));assert.equal(b.seen.get(a.id).at,before,'unchanged player must not be resent');
  for(const p of [a,b,c]){p.move(16.5,1,13);}await new Promise(r=>setTimeout(r,30));
@@ -37,6 +53,8 @@ try{
  a.send({type:'invite',action:'lean'});const j=await until(()=>b.messages.find(m=>m.type==='invite'&&m.id!==i.id));
  c.send({type:'respond',id:j.id,accept:true});await new Promise(r=>setTimeout(r,250));assert(!meta(a,a.id)?.action,'forged acceptance must be rejected');
  b.send({type:'respond',id:j.id,accept:true});await until(()=>meta(c,a.id)?.action==='lean'&&meta(c,b.id)?.action==='lean');
+ assert.equal(meta(c,a.id).actionFrom,a.id,'lean initiator is the player who sent the invitation');
+ assert.equal(meta(c,b.id).actionFrom,a.id,'receiver keeps the same action initiator');
  b.send({type:'leave'});await until(()=>!meta(c,a.id)?.action&&!meta(c,b.id)?.seat);
  c.send({type:'sit',swing:0});await until(()=>c.messages.find(m=>m.type==='seated'));
  const cid=c.id;c.ws.close();await until(()=>a.messages.some(m=>m.type==='gone'&&m.ids.includes(cid)));

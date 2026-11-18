@@ -673,8 +673,11 @@ text('Bicycle shelter sign','NHÀ ĐỂ XE',(59,-43.15,3.45),.55,'blue')
 for ob in set(bpy.data.objects)-parking_before:
     if ob in solids:solids.remove(ob)
     bpy.data.objects.remove(ob,do_unlink=True)
-for z in [.08,3.25]:
-    cube('Parking yellow deck',(47.7,9,z),(7.6,54,.18),'cream',True)
+cube('Parking yellow lower deck',(48.5,9,.08),(9.2,54,.18),'cream',True)
+cube('Parking yellow deck',(47.075,9,3.25),(6.35,54,.18),'cream',True)
+# Close the unused upper-floor strip beyond the ramp arrival.
+cube('Parking closed upper side strip',(51.675,20,3.25),(2.85,32,.18),'cream',True)
+cube('Parking wide ramp apron',(51.6,-21,.08),(3.2,4,.18),'cream',True)
 # A dedicated ramp lane on the right keeps the upper floor opening clear.
 for y in [-18,-9,0,9,18,27,36]:
     for x in [43.9,53.1]:cube('Parking yellow column',(x,y,3.4),(.18,.18,6.8),'wall',True)
@@ -684,11 +687,13 @@ for y in [-18,-9,0,9,18,27,36]:
     beam('Parking restrained roof truss',(43.9,y,7),(53.1,y,7),.045,'metal')
 # Lan can bê tông tầng 2 (thay lan can sắt vàng), màu kem như tường dãy C bên cạnh
 for x in [43.9,53.1]:cube('Parking concrete parapet',(x,9,3.84),(.18,54,1.0),'cream',True)
-for y0,y1 in [(-18,4),(14,36)]:cube('Parking inner parapet',(51.62,(y0+y1)/2,3.84),(.16,y1-y0,1.0),'cream',True)  # mép sàn phía trên đường dốc
-cube('Parking upper landing',(52.1,9,3.25),(2,10,.18),'cream',True)
-ramp=cube('Parking continuous yellow ramp',(52.1,-8,1.64),(1.9,24.23,.18),'wall',True)
+cube('Parking south end parapet',(48.5,-18,3.84),(9.4,.2,1),'cream',True)
+cube('Parking north end parapet',(48.5,36,3.84),(9.2,.18,1),'cream',True)
+for y0,y1 in [(-18,4)]:cube('Parking inner parapet',(50.18,(y0+y1)/2,3.84),(.16,y1-y0,1.0),'cream',True)  # mép sàn phía trên đường dốc
+cube('Parking upper landing',(51.65,9,3.25),(2.9,10,.18),'cream',True)
+ramp=cube('Parking continuous yellow ramp',(51.6,-8,1.64),(2.8,24.23,.18),'wall',True)
 ramp.rotation_euler.x=math.atan2(3.3,24)
-for x in [51.12,53.08]:  # thành bê tông hai bên đường dốc (thay tay vịn sắt dốc lên)
+for x in [50.13,53.08]:  # thành bê tông hai bên đường dốc (thay tay vịn sắt dốc lên)
     w=cube('Parking ramp parapet',(x,-8,2.19),(.14,24.23,1.0),'cream',True);w.rotation_euler.x=math.atan2(3.3,24)
 # 1. rào chắn dọc mép tây tầng 1 nhà xe chính (từ đầu bắc tới chỗ nối với nhà xe nhỏ)
 railing(43.98,36,43.98,-11.8)
@@ -1011,9 +1016,17 @@ for x0,x1 in [(-36.35,1.0),(6.0,7.0),(12.0,13.6),(19.8,75.27)]:cube('Street oute
 for x in range(-32,76,4):
     if 0.5<x<20.3:continue
     cube('Street outer wall pier',(x,SB_Y,1.2),(.32,.32,2.4),'cream')
+# Collision-only support under visible planter rims and soil, including round pots.
+for pot in list(bpy.data.objects):
+    if pot.type!='MESH' or not any(tag in pot.name.lower() for tag in ['planter','soil']):continue
+    if not (0<pot.location.z<1.3) or abs(pot.scale.x-pot.scale.y)>.001:continue
+    r=abs(pot.scale.x);height=abs(pot.scale.z)
+    if r<.25 or r>3 or height>1.2:continue
+    for w,d in [(2*r,.8*r),(1.6*r,1.6*r),(.8*r,2*r)]:
+        cube('Planter support collider',tuple(pot.location),(w,d,height),'grass',True)
 export_campus_data()
 # khung va chạm của lan can nhà xe chỉ dùng cho dữ liệu va chạm, không đưa vào mô hình hiển thị
-for ob in [o for o in bpy.data.objects if o.name.startswith(('Bike shed railing collider','Hall gallery rail collider'))]:bpy.data.objects.remove(ob,do_unlink=True)
+for ob in [o for o in bpy.data.objects if o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider'))]:bpy.data.objects.remove(ob,do_unlink=True)
 
 # Merge static meshes by material for a small GLB and fewer draw calls on the web.
 fonts=[o for o in bpy.context.scene.objects if o.type=='FONT']

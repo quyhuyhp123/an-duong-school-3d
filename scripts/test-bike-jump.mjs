@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import RAPIER from '@dimforge/rapier3d-compat';
+import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from '../src/character-controller.js';
+import {RIDE_SPEED} from '../src/bikes.js';
+await RAPIER.init();
+const world=new RAPIER.World({x:0,y:-16,z:0});world.timestep=1/60;
+world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));
+const body=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,1,0));
+const collider=world.createCollider(RAPIER.ColliderDesc.capsule(CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS),body),controller=createController(world),state={vertical:0,jumpHeld:false};
+function step(jump,moving=true){moveCharacter({body,collider,controller,state,direction:{x:0,z:moving?1:0},speed:RIDE_SPEED,jump,dt:world.timestep});world.step();return body.translation();}
+for(let i=0;i<60;i++)step(false,false);
+const base=body.translation().y,startZ=body.translation().z;
+let highest=base;
+for(let i=0;i<150;i++)highest=Math.max(highest,step(true).y);
+assert(highest>base+.7,'Space lifts the moving bicycle');
+assert(Math.abs(body.translation().y-base)<.05,'holding Space must land without repeated jumps');
+assert(body.translation().z>startZ+RIDE_SPEED*2,'bike keeps moving forward while jumping');
+step(false,false);let nextPeak=base;
+for(let i=0;i<60;i++)nextPeak=Math.max(nextPeak,step(true,false).y);
+assert(nextPeak>base+.7,'release and press again permits a new jump, including while stopped');
+world.free();console.log('PASS bicycle jumps, moves in air, lands, held Space does not repeat, new press jumps again');

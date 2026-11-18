@@ -30,6 +30,13 @@ export const LAMP_POSTS=[
  [43,35.5],
 ];
 const WARM='#ffd9a0';
+export function ParkingLights(){
+ const refs=useRef([]),material=useMemo(()=>new THREE.MeshStandardMaterial({color:'#fff4d4',emissive:WARM,emissiveIntensity:0}),[]);
+ useEffect(()=>()=>material.dispose(),[material]);
+ useFrame(()=>{const n=nightFactor();material.emissiveIntensity=2*n;refs.current.forEach(l=>{if(l)l.intensity=22*n;});});
+ const positions=[...[-28,-16,-4,8,16].flatMap(z=>[[47.5,2.9,z],[47.5,6.6,z]]),[36.5,2.7,14.7]];
+ return <group>{positions.map(([x,y,z],i)=><group key={i} position={[x,y,z]}><mesh material={material}><boxGeometry args={[1.4,.08,.25]}/></mesh><pointLight ref={l=>refs.current[i]=l} position={[0,-.15,0]} color={WARM} intensity={0} distance={14} decay={1.7}/></group>)}</group>;
+}
 const GATE_LAMPS=[-7,-3.5,3.5,7].map(x=>[x,Math.abs(x)>5?4.7:5.55,47.8]);
 // Mỗi đèn điểm làm MỌI bề mặt trong cảnh phải tính thêm ánh sáng (kể cả khi tắt) → chỉ giữ vài đèn thật, dời tới các
 // cột đèn gần camera nhất (cập nhật 2 lần/giây). Cột ở xa vẫn sáng nhờ bóng đèn phát sáng + vầng sáng vẽ sẵn trên mặt sân.

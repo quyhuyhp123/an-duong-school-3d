@@ -21,13 +21,18 @@ for(let i=0;i<8;i++){
 function row(prefix,x,yaw,floorY,z0,z1,step=1){for(let z=z0,i=0;z<=z1+1e-6;z+=step,i++)BAYS.push({id:prefix+i,x,z,yaw,floorY,group:'main'});}
 row('a',45,Math.PI/2,.17,-34,9);           // tầng 1 – hàng tây
 row('b',50.4,-Math.PI/2,.17,-34,-6);       // tầng 1 – hàng đông
+// Upper east rows are inset from the widened ramp: keep all bay IDs and capacity.
 row('c',45,Math.PI/2,3.34,-34,16);         // tầng 2 – hàng tây
-row('d',50.4,-Math.PI/2,3.34,-34,-16);     // tầng 2 – hàng đông (trước đường dốc)
-row('e',50.4,-Math.PI/2,3.34,-2,16);       // tầng 2 – hàng đông (sau đường dốc)
+row('d',49.05,-Math.PI/2,3.34,-34,-16);     // tầng 2 – hàng đông (trước đường dốc)
+row('e',49.05,-Math.PI/2,3.34,-2,16);       // tầng 2 – hàng đông (sau đường dốc)
 
 // Ô nào có xe lúc đầu: khoảng 3/4 có xe (chọn cố định theo id để ai cũng giống nhau), chừa ô trống để đỗ
 const hash=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
-const state=new Map(BAYS.map(b=>[b.id,hash(b.id)%4!==0]));
+for(let i=0;i<10;i++){
+ BAYS.push({id:`shop-left-${i}`,x:-10+i*BAY_W,z:57.1,yaw:-Math.PI,floorY:.03,group:'shop-left'});
+ BAYS.push({id:`shop-right-${i}`,x:22+i*BAY_W,z:57.1,yaw:-Math.PI,floorY:.03,group:'shop-right'});
+}
+const state=new Map(BAYS.map(b=>[b.id,false]));
 const listeners=new Set();
 export const bayHasBike=id=>state.get(id)===true;
 export function setBay(id,has){state.set(id,has);listeners.forEach(f=>f());}

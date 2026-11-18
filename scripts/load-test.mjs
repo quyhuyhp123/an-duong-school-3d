@@ -55,7 +55,7 @@ else if(process.argv.includes('--gen')){
   c.ws.on('error',()=>{});
   c.ws.on('message',(raw,isBinary)=>{
    c.bytes+=raw.length;
-   if(!isBinary){const m=JSON.parse(raw);if(m.type==='welcome')c.id=m.id;if(m.type==='gone')for(const id of m.ids)c.known.delete(id);return;}
+   if(!isBinary){const m=JSON.parse(raw);if(m.type==='welcome'){c.id=m.id;c.ws.send(JSON.stringify({type:'profile',look:0,identity:{name:'Test player '+m.id,cls:'12A3',year:'2015-2018'}}));}if(m.type==='gone')for(const id of m.ids)c.known.delete(id);return;}
    const now=Date.now();
    const info=decodeSnapshot(new DataView(raw.buffer,raw.byteOffset,raw.byteLength),(id,x,y,z)=>{
     if(id===c.id)return;c.known.set(id,[x,z]);c.perSec.set(id,(c.perSec.get(id)??0)+1);

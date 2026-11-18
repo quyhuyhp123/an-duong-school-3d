@@ -45,7 +45,7 @@ function Turntable({look}){
  return <group ref={g} position={[0,-.95,0]}><AvatarBody look={look}/></group>;
 }
 const Seg=({value,options,onChange,label})=><div className="ob-seg" role="radiogroup" aria-label={label}>
- {options.map(([v,t])=><button key={v} role="radio" aria-checked={value===v} className={value===v?'on':''} onClick={()=>onChange(v)}>{t}</button>)}
+ {options.map(([v,t])=><button type="button" key={v} role="radio" aria-checked={value===v} className={value===v?'on':''} onClick={()=>onChange(v)}>{t}</button>)}
 </div>;
 
 function Creator({onBack,onEnter}){
@@ -72,6 +72,7 @@ function Creator({onBack,onEnter}){
     </div>}
     {teacher&&f.gender==='m'&&<Seg label="Râu" value={f.beard!==false?'yes':'no'} onChange={v=>set('beard',v==='yes')} options={[['yes','Có râu'],['no','Không râu']]}/>}
     {!teacher&&<Seg label="Đồng phục" value={f.season} onChange={v=>set('season',v)} options={[['summer','Mùa hè'],['winter','Mùa đông']]}/>}
+    <Seg label="Phương tiện đi lại" value={f.transport??'walk'} onChange={v=>set('transport',v)} options={[["walk","Đi bộ · Cổng chính"],["bike","Xe đạp · Cổng phụ"]]}/>
     <p className="ob-note">{note}</p>
     <label>Họ và tên<input value={f.name} onChange={e=>set('name',e.target.value)} maxLength={40} placeholder="VD: Nguyễn Văn An" autoFocus/></label>
     {teacher

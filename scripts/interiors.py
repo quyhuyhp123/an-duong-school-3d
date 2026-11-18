@@ -83,12 +83,14 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
             for dx,ascending in [(-.48,True),(.48,False)]:
                 low=z+1.05 if ascending else z+4.65
                 beam(name+' red stone stair handrail',(sx+dx,-1,low),(sx+dx,3.8,z+2.85),.065,'brick')
-                beam(name+' red stone landing return',(sx+dx,3.8,z+2.85),(sx+dx,4.75,z+2.85),.065,'brick')
                 for j in range(12):
                     yy=-1+(j+.5)*.4
                     tread=z+(j+1)*.15 if ascending else z+3.6-j*.15
                     top=low+(yy+1)*( .375 if ascending else -.375)
                     beam(name+' vertical stair baluster',(sx+dx,yy,tread+.06),(sx+dx,yy,top),.028,'trim')
+            # Close the two flight rails across the central gap, without projecting into the landing.
+            beam(name+' central handrail connector',(sx-.48,3.8,z+2.85),(sx+.48,3.8,z+2.85),.065,'brick')
+            beam(name+' central connector support',(sx,3.8,z+1.9),(sx,3.8,z+2.85),.028,'trim')
             for dx in [-3.6,3.6]:cube(name+' stair wall lining',(sx+dx,1.9,z+1.8),(.2,6.1,3.4),'wall',True)
             stair_routes.append({'building':name,'floor':floor,'roof':False,'path':[wp(cx,cy,angle,sx-1.65,-2.1,z+.98),wp(cx,cy,angle,sx-1.65,4.35,z+2.78),wp(cx,cy,angle,sx+1.65,4.35,z+2.78),wp(cx,cy,angle,sx+1.65,-2.1,z+4.58)]})
         if main:
@@ -101,6 +103,13 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
         wallh=1.05 if floor==floors else 3.4
         cube(name+' rear wall',(0,5.75,z+wallh/2+.1),(length,.2,wallh),'cream',True)
         for side in [-1,1]:cube(name+' end wall',(side*length/2,2.5,z+wallh/2+.1),(.2,6.7,wallh),'cream',True)
+        if floor:
+            # Guard exposed corridor ends, while retaining the connections to the main wing.
+            exposed=[-1] if name.startswith('B') else [1] if name.startswith('C') else [-1,1]
+            for side in exposed:
+                xx=side*length/2
+                cube(name+' corridor end parapet',(xx,-3,z+.55),(.18,4.3,.9),'cream',True)
+                cube(name+' corridor end coping',(xx,-3,z+1.04),(.28,4.45,.1),'brick')
         if True:
             for lo,hi in segments:
                 if main:lo=max(lo,-29.5);hi=min(hi,29.5)

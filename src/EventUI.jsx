@@ -1,3 +1,5 @@
+import {useProfile,lookCode} from './profile';
+import {characterIdentity,identityLabel} from './characterIdentity.js';
 import React,{useEffect,useRef,useState} from 'react';
 import {network} from './multiplayer';
 import {EVENT_INFO} from './live';
@@ -16,15 +18,14 @@ export function EventPill({event,note,onGo}){
  </div>;
 }
 
-const NAME_KEY='school-chat-name';
 const fmtTime=iso=>{try{return new Date(iso).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}catch{return ''}};
 
 // Cửa sổ trò chuyện chung (mọi người đang ở trường đều thấy)
 export function ChatPanel({messages,title}){
  const [open,setOpen]=useState(false),[text,setText]=useState(''),[error,setError]=useState(null),[unread,setUnread]=useState(0);
- const [name,setName]=useState(()=>{try{return localStorage.getItem(NAME_KEY)??''}catch{return ''}});
+ const profile=useProfile(),sender=identityLabel(profile);
  const list=useRef(),input=useRef(),seen=useRef(messages.length);
- useEffect(()=>{try{localStorage.setItem(NAME_KEY,name)}catch{}},[name]);
+
  // Đếm tin chưa đọc khi đang thu nhỏ; tự cuộn xuống tin mới nhất khi đang mở
  useEffect(()=>{
   if(open){seen.current=messages.length;setUnread(0);requestAnimationFrame(()=>{if(list.current)list.current.scrollTop=list.current.scrollHeight});}
@@ -35,7 +36,9 @@ export function ChatPanel({messages,title}){
  useEffect(()=>{const on=e=>{if(e.target?.closest?.('input,textarea,select'))return;if(e.code==='Enter'&&!open){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};window.addEventListener('keydown',on);return()=>window.removeEventListener('keydown',on)},[open]);
  function send(e){
   e.preventDefault();const t=text.trim();if(!t)return;
-  if(!network.send({type:'chat',name:name.trim(),text:t})){setError('Chưa kết nối máy chủ.');setTimeout(()=>setError(null),3000);return;}
+  if(!sender){setError('Hãy hoàn tất hồ sơ nhân vật trước khi gửi tin nhắn.');return;}
+  network.send({type:'profile',look:lookCode(profile),identity:characterIdentity(profile)});
+  if(!network.send({type:'chat',text:t})){setError('Chưa kết nối máy chủ.');setTimeout(()=>setError(null),3000);return;}
   setText('');
  }
  if(!open)return <button className="chat-fab" onClick={()=>{setOpen(true);setTimeout(()=>input.current?.focus(),0)}} aria-label="Mở trò chuyện chung">💬 <span>Trò chuyện</span>{unread>0&&<b className="chat-unread">{unread>99?'99+':unread}</b>}</button>;
@@ -43,11 +46,12 @@ export function ChatPanel({messages,title}){
   <header><div><b>{title}</b><small>{network.online} người đang ở trường · Enter để mở</small></div><button onClick={()=>setOpen(false)} aria-label="Thu nhỏ">–</button></header>
   <div className="chat-list" ref={list}>
    {messages.length===0?<p className="chat-empty">Chưa có tin nhắn. Chào mọi người một câu nhé!</p>:
-    messages.map(m=><div key={m.id} className={'chat-msg'+(m.name===(name.trim()||'Khách')?' mine':'')}><span className="chat-name">{m.name}</span><span className="chat-time">{fmtTime(m.at)}</span><p>{m.text}</p></div>)}
+    messages.map(m=><div key={m.id} className={'chat-msg'+(m.authorId&&m.authorId===network.uid?' mine':'')}><span className="chat-name">{m.name}</span><span className="chat-time">{fmtTime(m.at)}</span><p>{m.text}</p></div>)}
   </div>
   {error&&<p className="chat-error">{error}</p>}
+  {sender&&<div className="chat-sender">{sender}</div>}
   <form onSubmit={send} className="chat-form">
-   <input className="chat-name-input" value={name} onChange={e=>setName(e.target.value.slice(0,24))} placeholder="Tên bạn" aria-label="Tên hiển thị"/>
+
    <input ref={input} value={text} onChange={e=>setText(e.target.value.slice(0,200))} onKeyDown={e=>{if(e.key==='Escape'){e.currentTarget.blur();setOpen(false);}}} placeholder="Nhập tin nhắn…" aria-label="Tin nhắn"/>
    <button type="submit" disabled={!text.trim()}>Gửi</button>
   </form>

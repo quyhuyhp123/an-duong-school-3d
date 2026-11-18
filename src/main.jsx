@@ -1,3 +1,4 @@
+import {entryFor} from './transport';
 import React,{Suspense,useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Canvas} from '@react-three/fiber';
@@ -65,7 +66,7 @@ function App(){
   useEffect(()=>{setListenerPosition(overview?[1e4,0,1e4]:[position.x,position.y,position.z])},[position,overview]);
   function visit(p){setDestination({position:p,yaw:0,time:Date.now()});setOverview(false);setMap(false)}
   // chọn nhân vật xong: đứng yên trên vỉa hè trước cổng chính, quay mặt vào trường (người chơi tự đi vào)
-  function enterSchool(){setOnboard(null);setDestination({position:[0,1,49.3],yaw:0,time:Date.now()});setOverview(false);setMap(false);setAlbum(false)}
+  function enterSchool(p=profile){const bike=p?.transport==='bike';setOnboard(null);setDestination({position:entryFor(bike?'bike':'walk'),transport:bike?'bike':'walk',yaw:0,time:Date.now()});setOverview(false);setMap(false);setAlbum(false)}
   const currentRoom=data?.rooms.find(r=>{
     if(Math.abs(r.inside[1]-position.y)>.75||!r.aisle)return false;
     const dx=r.aisle[0]-r.door[0],dz=r.aisle[2]-r.door[2],length2=dx*dx+dz*dz;

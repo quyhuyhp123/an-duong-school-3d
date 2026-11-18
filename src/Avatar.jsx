@@ -54,11 +54,12 @@ function outfit({teacher,female,winter,color}){
  return {top:'#edf2ef',sleeve:'#edf2ef',pants:'#2c4059',shoes:'#263039',tag:true,bag:true,skirt:female,skirtC:'#24365a'};
 }
 
-export function AvatarBody({look=0,eyes=true}){
+export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0}){
  const L=decodeLook(look),o=outfit(L);
  // Nữ: thân thon (eo nhỏ), vai hẹp, tay chân mảnh; tóc dài buộc nơ; môi hồng; học sinh nữ ba lô hồng, mùa hè mặc chân váy xếp ly
  const F=L.female,torsoR=F?.205:.25,R=torsoR+.007,armX=F?.285:.32,armR=F?.068:.085,thighR=F?.088:.105,shinR=F?.078:.09;
  const legC=F&&o.skirt?SKIN:o.pants,bagC=F?(L.winter?'#d9668f':'#f08bb0'):(L.winter?'#2a2a2a':'#58766e');
+ const bookSide=joinedSide===-1?1:-1,caseSide=joinedSide===1?-1:1;
  const lx=.11,lz=Math.sqrt(R*R-lx*lx);   // logo áp lên mặt cong của thân
  return <group>
   {/* thân (nữ: thêm phần eo thắt lại) */}
@@ -93,6 +94,7 @@ export function AvatarBody({look=0,eyes=true}){
   {o.tag&&F&&<group position={[0,1.37,.19]}>{/* nơ cổ áo */}{[-1,1].map(s=><mesh key={s} position={[s*.045,0,0]} rotation={[0,0,s*Math.PI/2]}><coneGeometry args={[.035,.07,8]}/><M c="#24365a"/></mesh>)}<mesh><sphereGeometry args={[.018,8,8]}/><M c="#24365a"/></mesh></group>}
   {o.bag&&<mesh position={[0,1.17,-torsoR]}><capsuleGeometry args={[F?.16:.18,F?.17:.2,5,12]}/><M c={bagC}/></mesh>}
   {/* đầu, tóc */}
+  <group name="head" position={[0,1.67,0]}><group position={[0,-1.67,0]}>
   <mesh castShadow position={[0,1.67,0]}><sphereGeometry args={[F?.198:.225,20,16]}/><M c={SKIN}/></mesh>
   <mesh castShadow position={[0,F?1.775:1.79,-.025]}><sphereGeometry args={[F?.206:.23,20,12,0,Math.PI*2,0,Math.PI*.58]}/><M c={HAIR}/></mesh>
   {F&&<>
@@ -119,8 +121,9 @@ export function AvatarBody({look=0,eyes=true}){
    <mesh position={[0,1.59,.184]} rotation={[0,0,Math.PI]}><torusGeometry args={[.032,.01,6,10,Math.PI]}/><M c="#d9576b"/></mesh>
   </>}
   {L.teacher&&!F&&L.beard&&<mesh geometry={mustacheGeometry()}><M c="#2a2420" roughness={.6}/></mesh>/* ria mép vểnh, xoăn 2 đầu */}
-  {eyes&&[-1,1].map(s=><mesh key={s} position={[s*(F?.068:.078),1.69,F?.18:.204]}><sphereGeometry args={[F?.023:.022,8,8]}/><M c="#253039"/></mesh>)}
+  {eyes&&[-1,1].map(s=><mesh key={s} position={[s*(F?.068:.078),1.69,F?.18:.204]} scale={[1,expression==='kiss'?.2:1,1]}><sphereGeometry args={[F?.023:.022,8,8]}/><M c="#253039"/></mesh>)}
   {/* chân */}
+  </group></group>
   {[-1,1].map(s=><group key={s} name="thigh" position={[s*(F?.11:.14),.82,0]}>
    <mesh position={[0,-.18,0]}><capsuleGeometry args={[o.aoDai?.1:thighR,.18,5,12]}/><M c={legC}/></mesh>
    <group name="shin" position={[0,-.36,0]}>
@@ -132,17 +135,17 @@ export function AvatarBody({look=0,eyes=true}){
   {/* tay */}
   {[-1,1].map(s=><group key={s} name="arm" position={[s*armX,1.36,0]}>
    {/* cô giáo: tay trái gập ra trước ôm giáo án vào ngực */}
-   <group rotation={o.aoDai&&s<0?[-.8,0,.78]:[0,0,0]}>
+   <group rotation={o.aoDai&&s===bookSide?[-.8,0,-s*.78]:[0,0,0]}>
     <mesh position={[0,-.24,0]}><capsuleGeometry args={[armR,.39,5,10]}/><M c={o.sleeve}/></mesh>
     {o.jacket&&<mesh position={[0,-.12,0]}><cylinderGeometry args={[armR+.006,armR+.006,.12,12,1,true]}/><M c="#f2f4f6" side={2}/></mesh>}
     {o.suit&&<mesh position={[0,-.46,0]}><cylinderGeometry args={[.07,.07,.04,10]}/><M c="#ffffff"/></mesh>}
     <mesh position={[0,-.52,0]}><sphereGeometry args={[F?.07:.083,10,10]}/><M c={SKIN}/></mesh>
-    {o.aoDai&&s<0&&<group position={[.03,-.48,.1]} rotation={[.8,0,-.55]}>
+    {o.aoDai&&s===bookSide&&<group position={[.03,-.48,.1]} rotation={[.8,0,-.55]}>
      <mesh><boxGeometry args={[.26,.34,.035]}/><M c="#2a5caa"/></mesh>
      <mesh position={[0,0,.02]}><boxGeometry args={[.2,.26,.005]}/><M c="#f6f1e2"/></mesh>
     </group>}
     {/* thầy giáo: tay phải xách cặp da */}
-    {o.suit&&s>0&&<group position={[0,-.78,0]}>
+    {o.suit&&s===caseSide&&<group position={[0,-.78,0]}>
      <mesh castShadow><boxGeometry args={[.09,.28,.4]}/><M c="#4a2e1c" roughness={.5}/></mesh>
      <mesh position={[0,.17,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.06,.012,6,12,Math.PI]}/><M c="#2a1a10"/></mesh>
      <mesh position={[.047,.06,0]}><boxGeometry args={[.004,.04,.08]}/><M c="#c8a24a" metalness={.6}/></mesh>

@@ -1,6 +1,6 @@
 {
   "rooms": 65,
-  "colliders": 1860,
+  "colliders": 1972,
   "results": [
     {
       "name": "Main staircase sits under the right motto bay with a wider corridor",
@@ -96,6 +96,14 @@
     },
     {
       "name": "Jump works from an upper corridor",
+      "passed": true
+    },
+    {
+      "name": "Tree planters support the feet instead of hiding the lower legs",
+      "passed": true
+    },
+    {
+      "name": "Parking upper side strip is filled and widened ramp has useful clearance",
       "passed": true
     }
   ]

@@ -1,0 +1,482 @@
+{
+  "createdAt": "2026-11-17T17:38:06.700Z",
+  "url": "local isolated server",
+  "host": {
+    "cpu": "Intel(R) Core(TM) i5-14600KF",
+    "cores": 20,
+    "memGB": 34.1
+  },
+  "holdMs": 10000,
+  "results": [
+    {
+      "phase": "100 người · rải khắp trường",
+      "players": 100,
+      "openConnections": 100,
+      "slowClients": 0,
+      "slowClientsClosedByServer": 0,
+      "client": {
+        "downKBpsAvg": 10.8,
+        "downKBpsP95": 11.9,
+        "updateAgeP50Ms": 1,
+        "updateAgeP95Ms": 1,
+        "updateAgeP99Ms": 1,
+        "entitiesPerSnapshot": 51.6,
+        "coveragePct": 100,
+        "nearUpdateHz": 9.93,
+        "nearest10UpdateHz": 9.7
+      },
+      "server": {
+        "uptimeSec": 14,
+        "players": 100,
+        "eventLoopP95Ms": 11.9,
+        "eventLoopMaxMs": 17.2,
+        "tickP50Ms": 1.45,
+        "tickP95Ms": 1.82,
+        "tickMaxMs": 2.09,
+        "rssMB": 69,
+        "heapMB": 15,
+        "bytesOut": 17334018,
+        "messagesOut": 38145,
+        "bytesIn": 151612,
+        "messagesIn": 14480,
+        "snapshotsSkippedBackpressure": 0,
+        "slowClientsDropped": 0,
+        "rateLimitedMessages": 0,
+        "rejectedFull": 0,
+        "rejectedOrigin": 0,
+        "heartbeatTimeouts": 0,
+        "connectionsTotal": 100,
+        "chatMessages": 235,
+        "storageErrors": 0,
+        "maxBufferedBytes": 0,
+        "entitiesPerSnapshotAvg": 53.7,
+        "tickHz": 10,
+        "selectMsPerSec": 1.8,
+        "sendMsPerSec": 12.7,
+        "sliceMaxMs": 0.7,
+        "http": {},
+        "cpuOneCorePct": 4.5,
+        "outMBps": 1.09
+      }
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "players": 200,
+      "openConnections": 200,
+      "slowClients": 0,
+      "slowClientsClosedByServer": 0,
+      "client": {
+        "downKBpsAvg": 16.2,
+        "downKBpsP95": 18.6,
+        "updateAgeP50Ms": 1,
+        "updateAgeP95Ms": 1,
+        "updateAgeP99Ms": 2,
+        "entitiesPerSnapshot": 104.7,
+        "coveragePct": 100,
+        "nearUpdateHz": 9.87,
+        "nearest10UpdateHz": 9.6
+      },
+      "server": {
+        "uptimeSec": 28,
+        "players": 200,
+        "eventLoopP95Ms": 12.2,
+        "eventLoopMaxMs": 15.1,
+        "tickP50Ms": 3.19,
+        "tickP95Ms": 4.12,
+        "tickMaxMs": 4.67,
+        "rssMB": 81,
+        "heapMB": 15,
+        "bytesOut": 71172844,
+        "messagesOut": 118600,
+        "bytesIn": 430151,
+        "messagesIn": 43031,
+        "snapshotsSkippedBackpressure": 0,
+        "slowClientsDropped": 0,
+        "rateLimitedMessages": 0,
+        "rejectedFull": 0,
+        "rejectedOrigin": 0,
+        "heartbeatTimeouts": 0,
+        "connectionsTotal": 200,
+        "chatMessages": 492,
+        "storageErrors": 0,
+        "maxBufferedBytes": 0,
+        "entitiesPerSnapshotAvg": 107.3,
+        "tickHz": 10,
+        "selectMsPerSec": 6.6,
+        "sendMsPerSec": 25.8,
+        "sliceMaxMs": 1.7,
+        "http": {},
+        "cpuOneCorePct": 6.9,
+        "outMBps": 3.3
+      }
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "players": 500,
+      "openConnections": 500,
+      "slowClients": 0,
+      "slowClientsClosedByServer": 0,
+      "client": {
+        "downKBpsAvg": 22.1,
+        "downKBpsP95": 22.3,
+        "updateAgeP50Ms": 2,
+        "updateAgeP95Ms": 3,
+        "updateAgeP99Ms": 11,
+        "entitiesPerSnapshot": 159.3,
+        "coveragePct": 100,
+        "nearUpdateHz": 5.99,
+        "nearest10UpdateHz": 9
+      },
+      "server": {
+        "uptimeSec": 43,
+        "players": 500,
+        "eventLoopP95Ms": 13.2,
+        "eventLoopMaxMs": 25.2,
+        "tickP50Ms": 10.06,
+        "tickP95Ms": 11.63,
+        "tickMaxMs": 13.44,
+        "rssMB": 103,
+        "heapMB": 20,
+        "bytesOut": 275551382,
+        "messagesOut": 329272,
+        "bytesIn": 1117448,
+        "messagesIn": 115044,
+        "snapshotsSkippedBackpressure": 0,
+        "slowClientsDropped": 0,
+        "rateLimitedMessages": 0,
+        "rejectedFull": 0,
+        "rejectedOrigin": 0,
+        "heartbeatTimeouts": 0,
+        "connectionsTotal": 500,
+        "chatMessages": 766,
+        "storageErrors": 0,
+        "maxBufferedBytes": 0,
+        "entitiesPerSnapshotAvg": 159.2,
+        "tickHz": 10,
+        "selectMsPerSec": 35.7,
+        "sendMsPerSec": 62.4,
+        "sliceMaxMs": 3.7,
+        "http": {},
+        "cpuOneCorePct": 19.2,
+        "outMBps": 11.23
+      }
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "players": 500,
+      "openConnections": 500,
+      "slowClients": 12,
+      "slowClientsClosedByServer": 0,
+      "client": {
+        "downKBpsAvg": 20.5,
+        "downKBpsP95": 21.2,
+        "updateAgeP50Ms": 1,
+        "updateAgeP95Ms": 3,
+        "updateAgeP99Ms": 4,
+        "entitiesPerSnapshot": 143.6,
+        "coveragePct": 100,
+        "nearUpdateHz": 2.88,
+        "nearest10UpdateHz": 9.03
+      },
+      "server": {
+        "uptimeSec": 63,
+        "players": 500,
+        "eventLoopP95Ms": 13.6,
+        "eventLoopMaxMs": 33.2,
+        "tickP50Ms": 10.05,
+        "tickP95Ms": 13.65,
+        "tickMaxMs": 16.76,
+        "rssMB": 169,
+        "heapMB": 30,
+        "bytesOut": 488119197,
+        "messagesOut": 621787,
+        "bytesIn": 2039048,
+        "messagesIn": 215444,
+        "snapshotsSkippedBackpressure": 0,
+        "slowClientsDropped": 0,
+        "rateLimitedMessages": 0,
+        "rejectedFull": 0,
+        "rejectedOrigin": 0,
+        "heartbeatTimeouts": 0,
+        "connectionsTotal": 500,
+        "chatMessages": 1151,
+        "storageErrors": 0,
+        "maxBufferedBytes": 186340,
+        "entitiesPerSnapshotAvg": 143.7,
+        "tickHz": 10,
+        "selectMsPerSec": 36,
+        "sendMsPerSec": 71.7,
+        "sliceMaxMs": 4,
+        "http": {},
+        "cpuOneCorePct": 21.7,
+        "outMBps": 10.45
+      }
+    }
+  ],
+  "checks": [
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "event loop p95 ≤ 50ms",
+      "ok": true,
+      "val": 11.9
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "lát tick dài nhất ≤ 30ms",
+      "ok": true,
+      "val": 0.7
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "CPU server ≤ 70% một lõi",
+      "ok": true,
+      "val": 4.5
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "RSS ≤ 1000MB",
+      "ok": true,
+      "val": 69
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "hàng đợi gửi bị chặn (≤ 4MB)",
+      "ok": true,
+      "val": 0
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "độ trễ cập nhật p95 ≤ 250ms",
+      "ok": true,
+      "val": 1
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "tải xuống p95 ≤ 64KB/s mỗi người",
+      "ok": true,
+      "val": 11.9
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "thấy ≥ 95% người chơi",
+      "ok": true,
+      "val": 100
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "10 người gần nhất cập nhật ≥ 8 lần/s",
+      "ok": true,
+      "val": 9.7
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "mọi người trong 20 m cập nhật ≥ 2 lần/s",
+      "ok": true,
+      "val": 9.93
+    },
+    {
+      "phase": "100 người · rải khắp trường",
+      "name": "không rớt kết nối thường",
+      "ok": true,
+      "val": "100/100"
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "event loop p95 ≤ 50ms",
+      "ok": true,
+      "val": 12.2
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "lát tick dài nhất ≤ 30ms",
+      "ok": true,
+      "val": 1.7
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "CPU server ≤ 70% một lõi",
+      "ok": true,
+      "val": 6.9
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "RSS ≤ 1000MB",
+      "ok": true,
+      "val": 81
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "hàng đợi gửi bị chặn (≤ 4MB)",
+      "ok": true,
+      "val": 0
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "độ trễ cập nhật p95 ≤ 250ms",
+      "ok": true,
+      "val": 1
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "tải xuống p95 ≤ 64KB/s mỗi người",
+      "ok": true,
+      "val": 18.6
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "thấy ≥ 95% người chơi",
+      "ok": true,
+      "val": 100
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "10 người gần nhất cập nhật ≥ 8 lần/s",
+      "ok": true,
+      "val": 9.6
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "mọi người trong 20 m cập nhật ≥ 2 lần/s",
+      "ok": true,
+      "val": 9.87
+    },
+    {
+      "phase": "200 người · rải khắp trường",
+      "name": "không rớt kết nối thường",
+      "ok": true,
+      "val": "200/200"
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "event loop p95 ≤ 50ms",
+      "ok": true,
+      "val": 13.2
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "lát tick dài nhất ≤ 30ms",
+      "ok": true,
+      "val": 3.7
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "CPU server ≤ 70% một lõi",
+      "ok": true,
+      "val": 19.2
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "RSS ≤ 1000MB",
+      "ok": true,
+      "val": 103
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "hàng đợi gửi bị chặn (≤ 4MB)",
+      "ok": true,
+      "val": 0
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "độ trễ cập nhật p95 ≤ 250ms",
+      "ok": true,
+      "val": 3
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "tải xuống p95 ≤ 64KB/s mỗi người",
+      "ok": true,
+      "val": 22.3
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "thấy ≥ 95% người chơi",
+      "ok": true,
+      "val": 100
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "10 người gần nhất cập nhật ≥ 8 lần/s",
+      "ok": true,
+      "val": 9
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "mọi người trong 20 m cập nhật ≥ 2 lần/s",
+      "ok": true,
+      "val": 5.99
+    },
+    {
+      "phase": "500 người · rải khắp trường",
+      "name": "không rớt kết nối thường",
+      "ok": true,
+      "val": "500/500"
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "event loop p95 ≤ 50ms",
+      "ok": true,
+      "val": 13.6
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "lát tick dài nhất ≤ 30ms",
+      "ok": true,
+      "val": 4
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "CPU server ≤ 70% một lõi",
+      "ok": true,
+      "val": 21.7
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "RSS ≤ 1000MB",
+      "ok": true,
+      "val": 169
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "hàng đợi gửi bị chặn (≤ 4MB)",
+      "ok": true,
+      "val": 186340
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "độ trễ cập nhật p95 ≤ 250ms",
+      "ok": true,
+      "val": 3
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "tải xuống p95 ≤ 64KB/s mỗi người",
+      "ok": true,
+      "val": 21.2
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "thấy ≥ 95% người chơi",
+      "ok": true,
+      "val": 100
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "10 người gần nhất cập nhật ≥ 8 lần/s",
+      "ok": true,
+      "val": 9.03
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "mọi người trong 20 m cập nhật ≥ 2 lần/s",
+      "ok": true,
+      "val": 2.88
+    },
+    {
+      "phase": "500 người · dồn về sân khấu + 2% kết nối chậm",
+      "name": "không rớt kết nối thường",
+      "ok": true,
+      "val": "500/500"
+    }
+  ]
+}

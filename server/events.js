@@ -1,3 +1,4 @@
+import {characterIdentity,identityLabel} from '../src/characterIdentity.js';
 // Sự kiện ban đêm (DJ / lửa trại) + phòng trò chuyện chung.
 // Cấu hình do trang quản lý đặt, lưu ở data/events.json và được đẩy tới mọi người chơi qua WebSocket.
 import {randomUUID} from 'node:crypto';
@@ -58,10 +59,12 @@ const lastChat=new WeakMap();
 export async function postChat(player,m){
  const config=await getConfig();
  if(config.chat==='off')return 'Phòng trò chuyện đang tắt.';
+ const identity=characterIdentity(player.identity),name=identityLabel(identity);
+ if(!name)return 'Hãy hoàn tất hồ sơ nhân vật trước khi gửi tin nhắn.';
  const now=Date.now();if(now-(lastChat.get(player)??0)<CHAT_GAP_MS)return 'Bạn gửi hơi nhanh, chậm lại chút nhé.';
  const text=clean(m.text,200);if(!text)return null;
  lastChat.set(player,now);
- const message={id:randomUUID(),name:clean(m.name,24)||'Khách',text,at:new Date().toISOString()};
+ const message={id:randomUUID(),name,identity,authorId:player.uid,text,at:new Date().toISOString()};
  const list=await recentChat();list.push(message);if(list.length>MAX_CHAT)list.splice(0,list.length-MAX_CHAT);
  hub.broadcast({type:'chat',message});metrics.count('chatMessages');
  chatStore.update(saved=>{const next=Array.isArray(saved)?saved:[];next.push(message);if(next.length>MAX_CHAT)next.splice(0,next.length-MAX_CHAT);return next;}).catch(e=>console.error('[chat] không lưu được',e.message));

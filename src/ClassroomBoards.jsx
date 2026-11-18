@@ -1,0 +1,16 @@
+import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {Html} from '@react-three/drei';
+import {useFrame} from '@react-three/fiber';
+import * as THREE from 'three';
+import {localPlayer} from './localPlayer';
+import {SCREEN_HUD} from './multiplayer';
+export function ClassroomBoards({boards,paused,onEditing}){
+ const [near,setNear]=useState(null),[visible,setVisible]=useState([]),[editing,setEditing]=useState(false),[value,setValue]=useState(''),[texts,setTexts]=useState(()=>{try{return JSON.parse(localStorage.getItem('school-board-texts')||'{}')}catch{return {}}});const target=useRef(null),clock=useRef(0);
+ useFrame((_,dt)=>{clock.current+=dt;if(clock.current<.25)return;clock.current=0;const p=localPlayer;if(!p.ready)return;const list=boards.filter(b=>Math.abs(p.y-b.approach[1])<1&&Math.hypot(p.x-b.position[0],p.z-b.position[2])<12);setVisible(old=>old.map(x=>x.id).join()===list.map(x=>x.id).join()?old:list);const n=list.find(b=>Math.hypot(p.x-b.approach[0],p.z-b.approach[2])<1.8)??null;if(!editing)target.current=n;setNear(n);});
+ useEffect(()=>{const key=e=>{if(e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyF'&&!e.repeat&&!paused&&!editing&&target.current){e.preventDefault();e.stopImmediatePropagation();setValue(texts[target.current.id]??'');setEditing(true);onEditing(true);}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true)},[paused,editing,texts,onEditing]);
+ function close(){setEditing(false);onEditing(false)}
+ return <>{visible.map(b=><BoardText key={b.id} board={b} text={texts[b.id]??''}/>)}{near&&!paused&&!editing&&<Html position={near.position} center style={{pointerEvents:'none',whiteSpace:'nowrap'}}><div style={{background:'#213b30',color:'white',padding:10,borderRadius:8}}>F · Viết bảng {near.id}</div></Html>}<Html {...SCREEN_HUD} style={{pointerEvents:editing?'auto':'none'}}>{editing&&<form onSubmit={e=>{e.preventDefault();const next={...texts,[target.current.id]:value};setTexts(next);try{localStorage.setItem('school-board-texts',JSON.stringify(next))}catch{}close()}} style={{position:'absolute',top:'25%',left:'25%',width:'50%',padding:24,background:'#fff8e8',borderRadius:14,color:'#263e37'}}><h3>Viết lên bảng đen</h3><textarea autoFocus value={value} maxLength={400} onChange={e=>setValue(e.target.value)} rows={5} style={{width:'100%',fontSize:18}}/><p>Nội dung lưu trên máy của bạn. Xóa nội dung rồi lưu để lau bảng.</p><button type="submit">Lưu lên bảng</button><button type="button" onClick={close}>Hủy</button></form>}</Html></>;
+}
+function BoardText({board:b,text}){
+ const texture=useMemo(()=>{const c=document.createElement('canvas');c.width=1024;c.height=384;const g=c.getContext('2d');g.fillStyle='#f7f5df';g.font='36px Arial';let y=48;for(const paragraph of text.split('\n')){let line='';for(const word of paragraph.split(' ')){const next=line+word+' ';if(g.measureText(next).width>960){g.fillText(line,32,y);y+=46;line='';}line+=word+' ';}g.fillText(line,32,y);y+=46;}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;},[text]);useEffect(()=>()=>texture.dispose(),[texture]);return <mesh position={b.position} rotation={[0,b.yaw,0]}><planeGeometry args={[3.5,1.25]}/><meshBasicMaterial map={texture} transparent depthWrite={false} side={THREE.DoubleSide}/></mesh>;
+}

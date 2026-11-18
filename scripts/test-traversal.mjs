@@ -76,8 +76,8 @@ test('No stair routes lead onto roofs',()=>{assert(data.stairs.every(s=>!s.roof)
 test('Parking second level is accessible',()=>{set([52.1,1,20.4]);go([52.1,4.28,-4.1],'parking stair');go([48.5,4.28,-11.45],'parking upper deck');assert(body.translation().y>4,'Upper parking floor');});
 test('E-bike route: shed bays → connector → east lane → secondary gate and back',()=>{
   // giữa hai hàng ô trong nhà xe → ra lối nối phía đông (không lan can) → xuống đường nội bộ → bãi xe cổng phụ, rồi quay lại
-  set([36,1.1,14.7]);go([42,.98,14.7],'shed aisle to connector');go([42.5,.98,30],'connector to east lane');go([49,.98,42],'lane to secondary gate');
-  go([42.5,.98,30],'back up the lane');go([42,.98,14.7],'into connector');go([36,1.1,14.7],'back to shed aisle');
+  set([36,1.1,14.7]);go([42,.98,14.7],'shed aisle to connector');go([42.5,.98,30],'connector to east lane');go([46,.98,30],'around roadside planters');go([49,.98,42],'lane to secondary gate');
+  go([46,.98,30],'back around roadside planters');go([42.5,.98,30],'back up the lane');go([42,.98,14.7],'into connector');go([36,1.1,14.7],'back to shed aisle');
 });
 // nhà vệ sinh sau dãy A (phải): cửa NAM x 42.85 → 43.94, cửa NỮ x 44.06 → 45.15, mặt trước z -42.5
 test('Washroom: men and women doors lead inside',()=>{
@@ -102,5 +102,17 @@ test('The garden and flower pergola remain walkable',()=>{
   set([20,1,20]);go([20,.98,11],'flower pergola and swings');
 });
 test('Jump works from an upper corridor',()=>{const r=data.rooms.find(r=>r.floor===2);set(r.door);const initial=body.translation().y;step({x:0,z:0},true);for(let i=0;i<10;i++)step();assert(body.translation().y>initial+.3,'Upper-floor jump');for(let i=0;i<120;i++)step();assert(Math.abs(body.translation().y-initial)<.1,'Land on the same floor');});
+test('Tree planters support the feet instead of hiding the lower legs',()=>{
+ const supports=data.colliders.filter(c=>c.name.startsWith('Planter support collider'));
+ assert(supports.length>0,'planter supports exported');
+ for(const c of supports.filter((_,i)=>i%3===0)){
+  const [x,y,z]=c.position,top=y+c.halfExtents[1];set([x,top+1.1,z]);
+  assert(body.translation().y-CHARACTER_HALF_HEIGHT-CHARACTER_RADIUS>=top-.025,`feet below planter at ${x},${z}`);
+ }
+});
+test('Parking upper side strip is filled and widened ramp has useful clearance',()=>{
+ for(const z of [-30,-20,-12]){set([52,4.4,z]);assert(body.translation().y>4,'upper parking strip has no hole');}
+ const ramp=data.colliders.find(c=>c.name==='Parking continuous yellow ramp');assert(ramp.halfExtents[0]>=1.399,'ramp widened to 2.8m');
+});
 writeFileSync('preview/traversal-results.json',JSON.stringify({rooms:data.rooms.length,colliders:data.colliders.length,results},null,2));
 world.free();if(results.some(r=>!r.passed))process.exitCode=1;
