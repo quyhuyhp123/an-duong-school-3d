@@ -801,15 +801,21 @@ places.extend([{'id':'hall','label':'Nhà đa năng','position':[51.2,.98,33.55]
 # bên nam thêm bồn tiểu gắn vách giữa. (Toạ độ Blender: mặt trước có cửa ở y nhỏ = phía nam trong three.js.)
 mat('porcelain',(.95,.96,.97));mat('mirror',(.72,.8,.86),.9)
 WC_FLOOR=.2
-def toilet_stall(name,cx_,y0,y1):  # buồng rộng 1.2 m: y0 = mặt trước (cửa), y1 = tường sau
-    for px in [cx_-.6,cx_+.6]:cube(name+' stall panel',(px,(y0+y1)/2,WC_FLOOR+1.15),(.05,y1-y0,2.0),'trim',True)
-    for sx in [-1,1]:cube(name+' stall front',(cx_+sx*.475,y0,WC_FLOOR+1.15),(.25,.05,2.0),'trim',True)
-    th=math.radians(70);hx=cx_-.35   # cánh cửa bản lề bên trái, hé mở 70° vào trong
-    door=cube(name+' stall door',(hx+.35*math.cos(th),y0+.35*math.sin(th),WC_FLOOR+1.1),(.7,.04,1.85),'wood');door.rotation_euler.z=th
-    cube(name+' toilet base',(cx_,y1-.55,WC_FLOOR+.2),(.36,.48,.4),'porcelain',True)
-    cube(name+' toilet seat',(cx_,y1-.6,WC_FLOOR+.42),(.4,.5,.05),'porcelain')
-    cube(name+' toilet tank',(cx_,y1-.17,WC_FLOOR+.62),(.44,.18,.42),'porcelain')
-    cube(name+' flush button',(cx_,y1-.17,WC_FLOOR+.84),(.08,.06,.02),'metal')
+STALL_WIDTH,STALL_DEPTH,STALL_DOOR=1.8,2.2,1.0
+def toilet_stall(name,cx_,y0,y1):
+    for px in [cx_-STALL_WIDTH/2,cx_+STALL_WIDTH/2]:cube(name+' stall panel',(px,(y0+y1)/2,WC_FLOOR+1.15),(.05,y1-y0,2.0),'trim',True)
+    jamb=(STALL_WIDTH-STALL_DOOR)/2
+    for sx in [-1,1]:cube(name+' stall front',(cx_+sx*(STALL_DOOR/2+jamb/2),y0,WC_FLOOR+1.15),(jamb,.05,2.0),'trim',True)
+    th=math.radians(85);hx=cx_-STALL_DOOR/2
+    door=cube(name+' stall door',(hx+STALL_DOOR/2*math.cos(th),y0+STALL_DOOR/2*math.sin(th),WC_FLOOR+1.1),(STALL_DOOR,.04,1.85),'wood');door.rotation_euler.z=th
+    ty=y1-.7
+    cube(name+' toilet base',(cx_,ty,WC_FLOOR+.22),(.46,.62,.44),'porcelain',True)
+    cube(name+' toilet seat',(cx_,ty,WC_FLOOR+.46),(.5,.64,.06),'porcelain')
+    cube(name+' toilet tank',(cx_,y1-.19,WC_FLOOR+.67),(.5,.2,.46),'porcelain')
+    cube(name+' flush button',(cx_,y1-.19,WC_FLOOR+.91),(.08,.06,.02),'metal')
+    # Avatar seated hip = body origin - .39, matching the porcelain seat top.
+    seats.append({'id':'toilet-'+str(len(seats)),'label':'bồn cầu','kind':'toilet','position':[cx_,WC_FLOOR+.49+.39,-ty],'yaw':0,'exit':[cx_,WC_FLOOR+.85,-(y0-.65)]})
+
 def sink_counter(name,wall_x,inward,y_c,n):  # bàn rửa tay dọc tường bên, n chậu, gương phía trên
     L=.9*n+.4;cx_=wall_x+inward*.3
     cube(name+' vanity cabinet',(cx_,y_c,WC_FLOOR+.4),(.5,L,.8),'wood',True)
@@ -822,8 +828,8 @@ def sink_counter(name,wall_x,inward,y_c,n):  # bàn rửa tay dọc tường bê
         cyl(name+' faucet',(wall_x+inward*.12,y,WC_FLOOR+.98),.025,.2,'metal',8)
         cube(name+' faucet spout',(wall_x+inward*.18,y,WC_FLOOR+1.07),(.12,.03,.03),'metal')
 # nhà vệ sinh trái đặt ở dải mở rộng phía tây (cạnh dãy B), xoay 90° để cửa quay về lối đi phía đông
-for cx,cy,w,d,key,label,rot in [(-49.2,29,6,7,'WC TRÁI','Nhà vệ sinh nam – nữ (cạnh dãy B)',math.pi/2),(44,45,12,7,'WC PHẢI','Nhà vệ sinh nam – nữ (sau dãy A, phải)',0)]:
-    wc_before=set(bpy.data.objects)
+for cx,cy,w,d,key,label,rot in [(-49.2,29,7.8,7,'WC TRÁI','Nhà vệ sinh nam – nữ (cạnh dãy B)',math.pi/2),(44,45,15.2,7,'WC PHẢI','Nhà vệ sinh nam – nữ (sau dãy A, phải)',0)]:
+    wc_before=set(bpy.data.objects);wc_seat_start=len(seats)
     yf,yb=cy-d/2,cy+d/2
     cube(key+' floor',(cx,cy,.1),(w,d,.2),'stone',True)
     cube(key+' rear',(cx,yb,1.6),(w,.18,3.2),'cream',True)
@@ -836,10 +842,10 @@ for cx,cy,w,d,key,label,rot in [(-49.2,29,6,7,'WC TRÁI','Nhà vệ sinh nam –
     for sx,word,m in [(-1,'NAM','blue'),(1,'NỮ','flower')]:
         cube(key+' sign plate',(cx+sx*.6,yf-.11,2.86),(.9,.04,.42),'trim')
         text(key+' sign '+word,word,(cx+sx*.6,yf-.14,2.76),.3,m)
-    half=w/2;n=max(1,int((half-.4)//1.2))   # số buồng mỗi bên
+    half=w/2;n=max(1,int((half-.18)//STALL_WIDTH))   # số buồng mỗi bên
     for sx in [-1,1]:   # -1 = NAM, +1 = NỮ
         outer=cx+sx*(w/2-.09)            # mặt trong tường bên
-        for i in range(n):toilet_stall(key+(' nam' if sx<0 else ' nu'),outer-sx*(.6+i*1.2),yb-.09-1.5,yb-.09)
+        for i in range(n):toilet_stall(key+(' nam' if sx<0 else ' nu'),outer-sx*(STALL_WIDTH/2+i*STALL_WIDTH),yb-.09-STALL_DEPTH,yb-.09)
         sinks=1 if w<8 else 2
         sink_counter(key+(' nam' if sx<0 else ' nu'),outer,-sx,yf+.35+(.9*sinks+.4)/2,sinks)
         if sx<0:   # bồn tiểu nam gắn vách giữa (mặt phía nam)
@@ -852,6 +858,13 @@ for cx,cy,w,d,key,label,rot in [(-49.2,29,6,7,'WC TRÁI','Nhà vệ sinh nam –
         for ob in set(bpy.data.objects)-wc_before:
             dx,dy=ob.location.x-cx,ob.location.y-cy
             ob.location.x,ob.location.y=cx+dx*cr-dy*sr,cy+dx*sr+dy*cr;ob.rotation_euler.z+=rot
+    if rot:
+        cr,sr=math.cos(rot),math.sin(rot)
+        for seat in seats[wc_seat_start:]:
+            for field in ['position','exit']:
+                x,h,z=seat[field];dx,dy=x-cx,-z-cy
+                seat[field]=[cx+dx*cr-dy*sr,h,-(cy+dx*sr+dy*cr)]
+            seat['yaw']+=rot
     ox,oy=(d/2+2)*math.sin(rot),-(d/2+2)*math.cos(rot)   # điểm đứng trước cửa
     places.append({'id':key,'label':label,'position':[cx+ox,.98,-(cy+oy)]})
 for y in []:  # 2 chậu thông cũ (54,-42),(54,-21) nằm trong phần nhà đa năng mở rộng → bỏ

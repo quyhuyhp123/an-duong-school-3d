@@ -23,8 +23,9 @@ function test(name,fn){try{fn();results.push({name,passed:true});console.log('PA
 test('Main staircase sits under the right motto bay with a wider corridor',()=>{
   const route=data.stairs.find(s=>s.building.startsWith('A')&&s.floor===0);
   assert(Math.abs((route.path[0][0]+route.path[2][0])/2-21)<.01,'Main stairwell must be at x=21, away from the corner');
-  const slab=data.colliders.find(c=>c.name.startsWith('A - Dãy chính stair corridor'));
-  assert(slab.halfExtents[2]*2>=3.4,'The stair-bay corridor must be widened to at least 3.4m');
+  const slabs=data.colliders.filter(c=>c.name.startsWith('A - ')&&c.name.includes('curved stair floor segment')&&c.position[0]>0&&Math.abs(c.position[1])<.01);
+  assert(slabs.length>0,'Curved stair-bay floor supports must exist');
+  assert(Math.min(...slabs.map(c=>c.halfExtents[2]*2))>=3.4,'The entire stair-bay corridor must be at least 3.4m deep');
 });
 test('Left wing is shortened and its staircase is centered',()=>{
   const route=data.stairs.find(s=>s.building.startsWith('B')&&s.floor===0);

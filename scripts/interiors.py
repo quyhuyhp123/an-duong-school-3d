@@ -71,8 +71,19 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
             for xx in [-length/2,length/2]:cube(name+' closed roof end',(xx,.3,z+.52),(.18,11.1,1.05),'cream',True)
             continue
         stair_before=set(bpy.data.objects)
-        cube(name+' stair corridor',(sx,(front-2.7)/2,z),(stairw,-2.7-front,.2),'trim',True)
-        cube(name+' stair front landing',(sx,-1.8 if main else -1.7,z),(stairw,1.8 if main else 1.4,.2),'trim',True)
+        if main:
+            # Follow the curved parapet with coplanar floor/support strips. Their tops
+            # stay at z+.1, exactly the same elevation as the adjacent room slabs.
+            strips=32
+            for j in range(strips):
+                x0=stair_left+j*stairw/strips;x1=stair_left+(j+1)*stairw/strips
+                def bowed_front(x):return front-.9*max(0,1-((x-sx)/5)**2)
+                edge=min(bowed_front(x0),bowed_front(x1))-.025
+                cube(name+' curved stair floor segment',((x0+x1)/2,(edge-2.7)/2,z),(x1-x0,-2.7-edge,.2),'trim',True)
+        else:
+            cube(name+' stair corridor',(sx,(front-2.7)/2,z),(stairw,-2.7-front,.2),'trim',True)
+        # Close the former 30 cm joint without adding a raised patch over the floor.
+        cube(name+' stair front landing',(sx,-1.8 if main else -1.85,z),(stairw,1.8 if main else 1.7,.2),'trim',True)
         # Slab openings stay clear above both flights, including the roof.
         if floor<floors-1:
             # chiếu nghỉ giữa tầng: kéo tới sát mặt trong tường sau (y 5.65), không còn khe 35 cm phía sau

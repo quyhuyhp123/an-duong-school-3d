@@ -34,12 +34,13 @@ import {GateBoard} from './GateBoard';
 import {getRole} from './role';
 import {HallStage,HALL_SEATS} from './HallStage';
 import {Shops,SHOP_SEATS} from './Shops';
+import {Canteen} from './Canteen';
 import {setLocalPlayer} from './localPlayer';
 import {AvatarBody} from './Avatar';
 import {touch} from './device';
 import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='no-gate-steps-80';
+export const MODEL_VERSION='roomy-toilet-stalls-seats-82';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -76,6 +77,7 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
  const [menu,setMenu]=useState(false),[pose,setPose]=useState('normal'),[swingNearby,setSwingNearby]=useState(false);const swingNearbyRef=useRef(false);const orbit=useRef({yaw:0,pitch:.22,distance:5.8,drag:false});
  const {world,rapier}=useRapier(),{camera,gl}=useThree();const controller=useRef();
  const renderedRoot=useMemo(()=>new THREE.Vector3(),[]),position=useMemo(()=>new THREE.Vector3(),[]),direction=useMemo(()=>new THREE.Vector3(),[]);
+ const cameraVectors=useMemo(()=>({target:new THREE.Vector3(),offset:new THREE.Vector3(),desired:new THREE.Vector3()}),[]);
  // Xe đạp điện: đang đạp xe nào (null = đi bộ), ô xe ở gần (để lấy / đỗ)
  const [gateWarning,setGateWarning]=useState(false),[gateFade,setGateFade]=useState(false);const gateTimer=useRef(null),gateWarned=useRef(false);
  useEffect(()=>()=>clearTimeout(gateTimer.current),[]);
@@ -250,7 +252,7 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
   // Gửi vị trí: network.sendMove tự gộp (tối đa 10 lần/giây, chỉ khi thay đổi)
   if(destination&&!passengerDriver.current)network.sendMove(p.x,p.y,p.z,dance.current?baseYaw.current:avatar.current.rotation.y,(modeCode(mode.current,groundSit.current,riding.current?RIDE:dance.current)|(riding.current&&wheelie.current&&walk.current&&!paused&&!overview?WHEELIE_FLAG:0)));
   if(state.clock.elapsedTime-report.current>.2){report.current=state.clock.elapsedTime;onPosition({x:p.x,y:p.y,z:p.z})}
-  if(!overview){const o=orbit.current,target=position.clone().add(new THREE.Vector3(0,1.43,0)),offset=new THREE.Vector3(Math.sin(o.yaw)*Math.cos(o.pitch),Math.sin(o.pitch),Math.cos(o.yaw)*Math.cos(o.pitch));const hit=world.castRay(new rapier.Ray(target,offset),o.distance+.2,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,capsule.current,body.current);const d=hit?Math.max(.24,hit.timeOfImpact-.22):o.distance,desired=target.clone().addScaledVector(offset,d);if(hit&&camera.position.distanceTo(target)>d+.25)camera.position.copy(desired);else if(snapCam.current){camera.position.copy(desired);snapCam.current=false;}else camera.position.lerp(desired,1-Math.exp(-12*Math.min(delta,.05)));camera.lookAt(target);avatar.current.visible=d>2.1;}else avatar.current.visible=true;
+  if(!overview){const o=orbit.current,target=cameraVectors.target.copy(position),offset=cameraVectors.offset.set(Math.sin(o.yaw)*Math.cos(o.pitch),Math.sin(o.pitch),Math.cos(o.yaw)*Math.cos(o.pitch));target.y+=1.43;const hit=world.castRay(new rapier.Ray(target,offset),o.distance+.2,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,capsule.current,body.current);const d=hit?Math.max(.24,hit.timeOfImpact-.22):o.distance,desired=cameraVectors.desired.copy(target).addScaledVector(offset,d);if(hit&&camera.position.distanceTo(target)>d+.25)camera.position.copy(desired);else if(snapCam.current){camera.position.copy(desired);snapCam.current=false;}else camera.position.lerp(desired,1-Math.exp(-12*Math.min(delta,.05)));camera.lookAt(target);avatar.current.visible=d>2.1;}else avatar.current.visible=true;
   if(localPair)avatar.current.visible=false;
  },-.5);
  const swingNear=swingNearby;
@@ -266,4 +268,4 @@ export const World=memo(function World(props){const [boardEditing,setBoardEditin
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
  const classroom=useMemo(()=>classroomLayout(data.rooms??[]),[data]);
  const playerData=useMemo(()=>({...data,seats:[...(data.seats??[]),...classroom.seats,...HALL_SEATS,...SHOP_SEATS,...(props.event==='campfire'?CAMPFIRE_SEATS:[])]}),[data,props.event,classroom]);
- return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><PhotoRoom/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});
+ return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><Canteen/><PhotoRoom/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});

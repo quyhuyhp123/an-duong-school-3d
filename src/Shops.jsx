@@ -131,7 +131,7 @@ function XoiInside({x}){
 // nhà quán + đồ bày: đứng yên → gộp thành vài khối theo chất liệu
 function ShopStatic({children}){const ref=useRef();useMergeStatic(ref,'deep');return <group ref={ref}>{children}</group>;}
 
-function Vendor({look,face}){
+export function Vendor({look,face}){
  const root=useRef(),body=useRef(),ph=useRef(Math.random()*6);useMergeStatic(root,'joint');
  useFrame(s=>{if(body.current)body.current.position.y=Math.sin(s.clock.elapsedTime*1.5+ph.current)*.01;if(root.current)turn(root.current,face.current);});
  const skin='#dcaa82';

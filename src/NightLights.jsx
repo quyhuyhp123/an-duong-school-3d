@@ -29,7 +29,13 @@ export const LAMP_POSTS=[
  [29.7,17],     // giữ nguyên vị trí đèn trên
  [43,26.5],     // đèn xen giữa ba cây bên kia đường
  [43,35.5],
+ // Lối đi phía tây: từ cửa vườn STEAM về nhà kho, đặt sát mép để chừa lối đi.
+ [-42.4,-39,0,Math.PI/2],
+ [-42.4,-22,0,Math.PI/2],
+ [-42.4,-5,0,Math.PI/2],
 ];
+// Hai bộ đèn treo dưới nóc nhà kính, chiếu xuống các luống cây và lối ngang.
+const STEAM_LAMPS=[[-48.5,3.85,-38.2],[-48.5,3.85,-47]];
 const WARM='#ffd9a0';
 export function ParkingLights(){
  const refs=useRef([]),material=useMemo(()=>new THREE.MeshStandardMaterial({color:'#fff4d4',emissive:WARM,emissiveIntensity:0}),[]);
@@ -42,7 +48,7 @@ const GATE_LAMPS=[-7,-3.5,3.5,7].map(x=>[x,Math.abs(x)>5?4.7:5.55,47.8]);
 // Mỗi đèn điểm làm MỌI bề mặt trong cảnh phải tính thêm ánh sáng (kể cả khi tắt) → chỉ giữ vài đèn thật, dời tới các
 // cột đèn gần camera nhất (cập nhật 2 lần/giây). Cột ở xa vẫn sáng nhờ bóng đèn phát sáng + vầng sáng vẽ sẵn trên mặt sân.
 const LIGHT_POOL=IS_TOUCH?2:4;
-const LIGHT_SPOTS=[...LAMP_POSTS.map(([x,z,y=0])=>({x,y:y+3.7,z,k:28,d:16})),...GATE_LAMPS.map(([x,y,z])=>({x,y:y-.3,z,k:22,d:12}))];
+const LIGHT_SPOTS=[...LAMP_POSTS.map(([x,z,y=0])=>({x,y:y+3.7,z,k:28,d:16})),...GATE_LAMPS.map(([x,y,z])=>({x,y:y-.3,z,k:22,d:12})),...STEAM_LAMPS.map(([x,y,z])=>({x,y:y-.15,z,k:32,d:12}))];
 
 function radialTexture(){
  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
@@ -93,6 +99,13 @@ export function CourtyardLamps(){
   {GATE_LAMPS.map((p,i)=><group key={`gate-${i}`} position={p}>
    <mesh material={res.gold}><boxGeometry args={[.5,.12,.28]}/></mesh>
    <mesh material={res.bulb} position={[0,-.075,0]}><boxGeometry args={[.4,.035,.2]}/></mesh>
+  </group>)}
+  {STEAM_LAMPS.map(([x,y,z],i)=><group key={`steam-${i}`} position={[x,y,z]}>
+   <mesh material={res.pole} position={[0,.34,0]}><cylinderGeometry args={[.015,.015,.68,6]}/></mesh>
+   <mesh material={res.gold}><boxGeometry args={[1.8,.12,.24]}/></mesh>
+   <mesh material={res.bulb} position={[0,-.075,0]}><boxGeometry args={[1.65,.035,.2]}/></mesh>
+   <sprite material={res.halo} position={[0,-.1,0]} scale={[2.2,1,1]}/>
+   <mesh material={res.pool} position={[0,.085-y,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[9,9]}/></mesh>
   </group>)}
   {Array.from({length:LIGHT_POOL},(_,i)=><pointLight key={'pool'+i} ref={el=>lights.current[i]=el} color={WARM} intensity={0} distance={16} decay={1.8}/>)}
   {/* không đi xuyên cột đèn */}
