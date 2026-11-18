@@ -1,1 +1,2 @@
-/admin  /admin.html  302
+# Cloudflare Pages automatically serves /admin.html at the clean URL /admin.
+# Redirecting /admin to /admin.html creates a loop with Pages' HTML normalization.
