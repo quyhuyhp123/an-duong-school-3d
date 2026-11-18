@@ -1051,7 +1051,7 @@ scene.render.resolution_x=1600; scene.render.resolution_y=1200; scene.render.res
 scene.view_settings.view_transform='AgX'
 os.makedirs(ROOT+'/public/models',exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=ROOT+'/blender/an-duong-school.blend')
-bpy.ops.export_scene.gltf(filepath=ROOT+'/public/models/an-duong-school.glb',export_format='GLB',use_selection=False,export_cameras=False,export_lights=False)
+bpy.ops.export_scene.gltf(filepath=ROOT+'/models-src/an-duong-school.glb',export_format='GLB',use_selection=False,export_cameras=False,export_lights=False)
 with open(ROOT+'/public/models/colliders.json','w',encoding='utf8') as f: json.dump(colliders,f)
 if '--skip-previews' in sys.argv:
     print('DONE: BLEND, GLB and walkable collision data created',flush=True)

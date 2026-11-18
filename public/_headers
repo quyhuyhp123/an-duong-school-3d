@@ -1,0 +1,9 @@
+# Cloudflare Pages: chính sách lưu đệm (file này chỉ có tác dụng trên Pages, máy chủ Node bỏ qua)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/models/*
+  Cache-Control: public, max-age=604800
+/murals/*
+  Cache-Control: public, max-age=604800
+/*.html
+  Cache-Control: no-cache

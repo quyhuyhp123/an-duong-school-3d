@@ -15,6 +15,7 @@ import {localPlayer} from './localPlayer';
 import {rearSeat} from './bikePassenger.js';
 import {AvatarBody} from './Avatar';
 import {getProfile,useProfile,lookCode} from './profile';
+import {websocketUrl} from './serverUrl';
 
 // ---------------- Trạng thái mạng dùng chung ----------------
 // Vị trí người khác cập nhật thẳng vào network.remotes (không qua React) để 500+ người không gây render lại liên tục.
@@ -72,7 +73,7 @@ export function Multiplayer(){
   let retry,timer,closed=false,attempt=0;
   const bump=()=>setVersion(v=>v+1);
   function connect(){
-   const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/multiplayer`);ws.binaryType='arraybuffer';network.socket=ws;let full=false;
+   const ws=new WebSocket(websocketUrl());ws.binaryType='arraybuffer';network.socket=ws;let full=false;
    ws.onopen=()=>{attempt=0;network.lastMove=null;snapshotOffset=null;};
    ws.onmessage=e=>{
     if(typeof e.data!=='string'){onSnapshot(e.data);return;}

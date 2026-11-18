@@ -1,3 +1,4 @@
+import {serverUrl} from './serverUrl';
 // Âm thanh sự kiện tổng hợp bằng Web Audio (không cần file nhạc):
 //  - DJ: nhạc điện tử 124 BPM (trống kick, clap, hi-hat, bass, arpeggio) — to dần khi lại gần sân khấu
 //  - Lửa trại: tiếng lửa tí tách — nghe rõ khi đứng gần đống lửa
@@ -94,7 +95,7 @@ function syncMusic(){
  if(!useMusic()){if(musicEl&&!musicEl.paused)musicEl.pause();return;}
  if(!musicEl||musicEl.dataset.url!==music.url){
   if(musicEl){musicEl.pause();musicSrc?.disconnect();}
-  musicEl=new Audio();musicEl.crossOrigin='anonymous';musicEl.loop=true;musicEl.preload='auto';musicEl.dataset.url=music.url;musicEl.src=music.url;
+  musicEl=new Audio();musicEl.crossOrigin='anonymous';musicEl.loop=true;musicEl.preload='auto';musicEl.dataset.url=music.url;musicEl.src=serverUrl(music.url);
   musicSrc=ctx.createMediaElementSource(musicEl);
   // Bộ phân tích đặt TRƯỚC bộ chỉnh âm lượng theo khoảng cách → người đứng xa hay tắt tiếng vẫn thấy đèn nháy đúng nhạc
   analyser??=Object.assign(ctx.createAnalyser(),{fftSize:2048,smoothingTimeConstant:.35});

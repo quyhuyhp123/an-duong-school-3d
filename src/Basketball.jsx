@@ -9,6 +9,7 @@
 // Hết giờ → gửi điểm lên server, bảng xếp hạng trong ngày (giờ Việt Nam); sang ngày mới giữ top 5 hôm trước.
 import React,{useEffect,useRef,useState,useCallback} from 'react';
 import {getProfile} from './profile';
+import {serverUrl} from './serverUrl';
 
 const W=900,H=520,GROUND=470,G=1500,BALL_R=15,GAME_S=45;
 const RIM_Y=235,RIM_FRONT=742,RIM_BACK=800,BOARD_X=820,BOARD_TOP=135,BOARD_BOTTOM=265;
@@ -17,7 +18,7 @@ const START_Y=385,MAX_DRAG=280,POWER=5;
 
 function clientId(){try{let id=localStorage.getItem('school-client-id');if(!id){id=crypto.randomUUID();localStorage.setItem('school-client-id',id);}return id;}catch{return '';}}
 async function api(game,method,body){
- const r=await fetch('/api/basketball?game='+game,{method,headers:{'Content-Type':'application/json','X-Client-Id':clientId()},body:body?JSON.stringify(body):undefined});
+ const r=await fetch(serverUrl('/api/basketball?game='+game),{method,headers:{'Content-Type':'application/json','X-Client-Id':clientId()},body:body?JSON.stringify(body):undefined});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Không kết nối được máy chủ.');return d;
 }
 const fmtDay=d=>d?d.split('-').reverse().join('/'):'';

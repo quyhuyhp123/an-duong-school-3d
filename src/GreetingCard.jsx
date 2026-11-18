@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from 'react';
+import {serverUrl} from './serverUrl';
 
 // Bông hoa trang trí vẽ bằng SVG (không cần ảnh ngoài)
 function Flower({size=40,color='#d9485f',center='#f6c453'}){
@@ -23,7 +24,7 @@ export function GreetingModal({onClose}){
  const [tab,setTab]=useState('card'),[wishes,setWishes]=useState([]),[total,setTotal]=useState(0),[loading,setLoading]=useState(true);
  const [form,setForm]=useState({name:'',to:'',message:''}),[status,setStatus]=useState(null),[sending,setSending]=useState(false);
  async function refresh(){
-  try{const r=await fetch('/api/wishes');const d=await r.json();setWishes(d.wishes??[]);setTotal(d.total??0);}catch{}finally{setLoading(false)}
+  try{const r=await fetch(serverUrl('/api/wishes'));const d=await r.json();setWishes(d.wishes??[]);setTotal(d.total??0);}catch{}finally{setLoading(false)}
  }
  // Tải danh sách khi mở, và cập nhật lời chúc mới của người khác mỗi 10 giây
  useEffect(()=>{refresh();const t=setInterval(refresh,10000);return()=>clearInterval(t)},[]);
@@ -31,7 +32,7 @@ export function GreetingModal({onClose}){
  async function submit(e){
   e.preventDefault();if(sending)return;setSending(true);setStatus(null);
   try{
-   const r=await fetch('/api/wishes',{method:'POST',headers:{'Content-Type':'application/json','X-Client-Id':clientId()},body:JSON.stringify(form)});const d=await r.json();
+   const r=await fetch(serverUrl('/api/wishes'),{method:'POST',headers:{'Content-Type':'application/json','X-Client-Id':clientId()},body:JSON.stringify(form)});const d=await r.json();
    if(!r.ok)throw new Error(d.error??'Gửi chưa được, thử lại nhé.');
    setWishes(w=>[d.wish,...w]);setTotal(n=>n+1);setForm(f=>({...f,message:''}));setStatus({ok:true,text:'Đã gửi lời chúc! Cảm ơn bạn ❤'});setTab('list');
   }catch(err){setStatus({ok:false,text:err.message||'Không kết nối được máy chủ.'});}

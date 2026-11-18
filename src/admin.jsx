@@ -2,12 +2,13 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import './admin.css';
+import {serverUrl} from './serverUrl';
 
 const TOKEN_KEY='school-admin-token';
 const getToken=()=>{try{return sessionStorage.getItem(TOKEN_KEY)}catch{return null}};
 const saveToken=t=>{try{t?sessionStorage.setItem(TOKEN_KEY,t):sessionStorage.removeItem(TOKEN_KEY)}catch{}};
 async function api(path,{method='GET',body,token}={}){
- const r=await fetch(path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});
+ const r=await fetch(serverUrl(path),{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});
  const data=await r.json().catch(()=>({}));
  if(!r.ok){const e=new Error(data.error??'Có lỗi xảy ra.');e.status=r.status;throw e;}
  return data;
@@ -56,7 +57,7 @@ function MusicCard({data,token,onChanged,notify}){
   if(!file)return;
   if(file.size>data.maxMusicMB*1048576){notify(`File quá lớn (tối đa ${data.maxMusicMB} MB).`,true);return;}
   const xhr=new XMLHttpRequest();
-  xhr.open('POST','/api/admin/music');xhr.setRequestHeader('Authorization','Bearer '+token);xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.setRequestHeader('Content-Type',file.type||'application/octet-stream');
+  xhr.open('POST',serverUrl('/api/admin/music'));xhr.setRequestHeader('Authorization','Bearer '+token);xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.setRequestHeader('Content-Type',file.type||'application/octet-stream');
   xhr.upload.onprogress=e=>setUpload({name:file.name,pct:e.lengthComputable?Math.round(e.loaded/e.total*100):0});
   xhr.onload=async()=>{setUpload(null);let d={};try{d=JSON.parse(xhr.responseText)}catch{}
    if(xhr.status>=300){notify(d.error??'Tải lên thất bại.',true);return;}
@@ -87,7 +88,7 @@ function MusicCard({data,token,onChanged,notify}){
     <label className="radio"><input type="radio" name="track" checked={cfg.musicId===t.id} onChange={()=>put({musicId:t.id})}/><span><b>{t.name}</b><small>{fmtSize(t.size)} · tải lên {fmt(t.uploadedAt)}{cfg.musicId===t.id&&' · đang phát'}</small></span></label>
     <button className="btn sm" onClick={()=>setPreview(preview===t.id?null:t.id)}>{preview===t.id?'Đóng':'▶ Nghe thử'}</button>
     <button className="btn danger sm" onClick={()=>remove(t)}>Xoá</button>
-    {preview===t.id&&<audio className="preview" src={t.url} controls autoPlay/>}
+    {preview===t.id&&<audio className="preview" src={serverUrl(t.url)} controls autoPlay/>}
    </li>)}
   </ul>
  </section>;

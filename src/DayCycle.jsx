@@ -1,7 +1,6 @@
 import React,{useRef} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
 import {localPlayer} from './localPlayer';
-import {IS_TOUCH} from './device';
 import {Stars} from '@react-three/drei';
 import * as THREE from 'three';
 const tmp=new THREE.Vector3();
@@ -71,7 +70,7 @@ export function DayCycle(){
  });
  return <>
   <hemisphereLight ref={hemi} args={['#eaf5ff','#a49a6c',1.1]}/><ambientLight ref={amb} intensity={.35}/>
-  <directionalLight ref={sun} castShadow position={[25,60,30]} intensity={1.8} shadow-mapSize={IS_TOUCH?[1024,1024]:[2048,2048]} shadow-camera-left={-42} shadow-camera-right={42} shadow-camera-top={42} shadow-camera-bottom={-42} shadow-camera-far={260} shadow-bias={-.001} shadow-normalBias={.08}/>
+  <directionalLight ref={sun} castShadow position={[25,60,30]} intensity={1.8} shadow-mapSize={[2048,2048]} shadow-camera-left={-42} shadow-camera-right={42} shadow-camera-top={42} shadow-camera-bottom={-42} shadow-camera-far={260} shadow-bias={-.001} shadow-normalBias={.08}/>
   <group ref={stars}><Stars radius={220} depth={60} count={2500} factor={6} fade speed={.4}/></group>
  </>;
 }

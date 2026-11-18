@@ -28,8 +28,20 @@ function requestHost(req){
 export function originAllowed(req){
  const origin=req.headers.origin;
  if(!origin)return true; // công cụ không phải trình duyệt (kiểm thử tải, giám sát)
- if(ALLOWED.length)return ALLOWED.includes(origin.replace(/\/$/,''));
- try{return new URL(origin).host.toLowerCase()===requestHost(req);}catch{return false;}
+ // luôn cho phép trang cùng tên miền với server; thêm các tên miền khác (VD trang web trên Cloudflare Pages) qua ALLOWED_ORIGINS
+ try{if(new URL(origin).host.toLowerCase()===requestHost(req))return true;}catch{return false;}
+ return ALLOWED.includes(origin.replace(/\/$/,''));
+}
+// CORS cho /api và /media khi trang web ở tên miền khác (ALLOWED_ORIGINS). Trả về true nếu đã trả lời preflight (OPTIONS).
+export function applyCors(req,res){
+ const origin=req.headers.origin;
+ if(!origin||!ALLOWED.includes(origin.replace(/\/$/,'')))return false;
+ res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');
+ res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, X-Client-Id, X-File-Name');
+ res.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS');
+ res.setHeader('Access-Control-Max-Age','86400');
+ if(req.method==='OPTIONS'){res.writeHead(204).end();return true;}
+ return false;
 }
 
 // Map có giới hạn số khoá và tự xoá mục hết hạn — dùng cho giới hạn tốc độ để không phình bộ nhớ khi bị dò quét

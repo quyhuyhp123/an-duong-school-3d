@@ -52,8 +52,9 @@ function App(){
   // không còn cảnh nhìn toàn trường từ trên cao lúc mở trang (camera bay xuống làm giật): luôn ở góc nhìn nhân vật
   const [overview,setOverview]=useState(false),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0),[greet,setGreet]=useState(false);
   const [basket,setBasket]=useState(false); // mini-game ném bóng rổ
-  // độ phân giải: điện thoại 1 → 1.25, máy tính 1 → 1.5; khung hình tụt thì tự hạ (thấp nhất 0.75), ổn định lại thì nâng dần
-  const MAX_DPR=IS_TOUCH?1.25:1.5,[dpr,setDpr]=useState(MAX_DPR),[compact,setCompact]=useState(IS_TOUCH); // compact: thu gọn khung tên trường
+  // độ phân giải: điện thoại màn hình mật độ cao (2–3x) → vẽ tối đa 2x, bắt đầu 1.75 (trước đây 1.25 → ảnh vỡ hạt);
+  // máy tính 1.5. Khung hình tụt thì tự hạ nhưng không dưới 1 (dưới 1 ảnh bị nhoè, răng cưa)
+  const MAX_DPR=IS_TOUCH?Math.min(2,Math.max(1,window.devicePixelRatio||1)):1.5,[dpr,setDpr]=useState(()=>IS_TOUCH?Math.min(1.75,MAX_DPR):MAX_DPR),[compact,setCompact]=useState(IS_TOUCH); // compact: thu gọn khung tên trường
   useEffect(()=>{const open=e=>{setBasket(e.detail==='flap'?'flap':'shoot');setMap(false);setAlbum(false);};window.addEventListener('open-basketball',open);return()=>window.removeEventListener('open-basketball',open);},[]);
   const profile=useProfile(),[onboard,setOnboard]=useState('welcome'); // màn hình chào / chọn nhân vật (null = đang chơi)
   const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(()=>({position:entryFor(getProfile()?.transport==='bike'?'bike':'walk'),yaw:0,time:0})); // ngay từ đầu nhân vật đứng ở cổng (sau màn hình chào camera đã khoá sẵn sau lưng)
@@ -75,8 +76,8 @@ function App(){
     return t>.2&&t<1.12&&Math.hypot(position.x-r.door[0]-t*dx,position.z-r.door[2]-t*dz)<2.5;
   });
   return <main>
-    <ErrorBoundary><Canvas shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:!IS_TOUCH}}>
-      <PerformanceMonitor onDecline={()=>setDpr(d=>Math.max(.75,d-.25))} onIncline={()=>setDpr(d=>Math.min(MAX_DPR,d+.25))} flipflops={4}/>
+    <ErrorBoundary><Canvas shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:true}}>
+      <PerformanceMonitor onDecline={()=>setDpr(d=>Math.max(1,d-.25))} onIncline={()=>setDpr(d=>Math.min(MAX_DPR,d+.25))} flipflops={4}/>
       <color attach="background" args={['#c8dce6']}/><fog attach="fog" args={['#c8dce6',170,320]}/>
       <DayCycle/>
       <Suspense fallback={null}>

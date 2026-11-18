@@ -12,7 +12,8 @@
     "test:multiplayer": "node scripts/test-multiplayer.mjs",
     "test:infra": "node scripts/test-infra.mjs",
     "test:load": "node scripts/load-test.mjs",
-    "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs"
+    "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs",
+    "model:compress": "node scripts/compress-model.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.0",
@@ -24,6 +25,10 @@
     "ws": "^8.23.0"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^1.3.0",
     "vite": "^7.0.0"
   },
   "engines": {

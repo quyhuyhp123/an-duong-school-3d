@@ -11,6 +11,7 @@ import {handleAdmin,announceAdmin} from './admin.js';
 import {handleMetrics,metrics,startMonitorLog} from './metrics.js';
 import {createStatic} from './static.js';
 import {handleMedia} from './music.js';
+import {applyCors} from './net.js';
 
 const serveStatic=createStatic('dist');
 const route=url=>url.startsWith('/api/admin')?'admin':url.startsWith('/api/wishes')?'wishes':url.startsWith('/api/')?'api':'static';
@@ -19,6 +20,7 @@ const server=createServer(async(req,res)=>{
  const t0=performance.now(),r=route(req.url??'/');
  res.on('finish',()=>{if(r!=='static'||res.statusCode>=500)metrics.http(r,performance.now()-t0,res.statusCode);});
  try{
+  if(/^\/(api|media)\//.test(req.url??'')&&applyCors(req,res))return; // trang web trên tên miền khác (Cloudflare Pages)
   if(/^\/admin\/?$/.test(req.url)){res.writeHead(302,{Location:'/admin.html'}).end();return;}
   if(handleMetrics(req,res))return;
   if(await handleMedia(req,res))return;
