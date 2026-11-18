@@ -1,0 +1,17 @@
+# Caddy: https cho tên miền, chuyển mọi request (kể cả WebSocket /multiplayer) sang Node.
+# setup.sh thay {{DOMAIN}} / {{PORT}} / {{TLS}} rồi ghi ra /etc/caddy/Caddyfile.
+#  - Sau Cloudflare (mây cam): "tls internal" — Cloudflare để SSL/TLS = Full; không cần Let's Encrypt.
+#  - Trỏ thẳng (mây xám / không Cloudflare): Caddy tự lấy & gia hạn chứng chỉ Let's Encrypt.
+{{DOMAIN}} {
+	{{TLS}}
+	encode zstd gzip
+	# file nhạc admin tải lên có thể lớn
+	request_body {
+		max_size 60MB
+	}
+	# /metrics chỉ xem được từ trong máy chủ
+	@metrics path /metrics
+	respond @metrics 403
+	# WebSocket được Caddy hỗ trợ sẵn, không giới hạn thời gian kết nối
+	reverse_proxy 127.0.0.1:{{PORT}}
+}

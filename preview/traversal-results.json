@@ -1,6 +1,6 @@
 {
   "rooms": 65,
-  "colliders": 1972,
+  "colliders": 1962,
   "results": [
     {
       "name": "Main staircase sits under the right motto bay with a wider corridor",
@@ -36,6 +36,10 @@
     },
     {
       "name": "D - Nhà gần cổng stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "Top-floor stairwells are guarded by a railing",
       "passed": true
     },
     {

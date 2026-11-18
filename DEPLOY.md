@@ -1,5 +1,7 @@
 # Triển khai cho 500–700 người cùng lúc
 
+> **Cài nhanh, miễn phí trên Oracle Cloud + Cloudflare:** xem [deploy/oracle/README.md](deploy/oracle/README.md) (script tự động `deploy/oracle/setup.sh`).
+
 ## Kiến trúc
 
 ```

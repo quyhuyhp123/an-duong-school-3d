@@ -38,7 +38,7 @@ import {AvatarBody} from './Avatar';
 import {touch} from './device';
 import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='parking-wide-ramp-planter-support-71';
+export const MODEL_VERSION='walls-continuous-75';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -54,7 +54,7 @@ const SIT_POSES={
 const MOVE_KEYS=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'];
 function Player({data,overview,paused,destination,onPosition,onNear,event}){
  const body=useRef(),capsule=useRef(),avatar=useRef(),keys=useRef({}),motion=useRef({vertical:0,jumpHeld:false});
- const myProfile=useProfile(),myLook=lookCode(myProfile),autoWalk=useRef(0); // autoWalk: thời điểm dừng tự đi (vừa vào trường từ cổng)
+ const myProfile=useProfile(),myLook=lookCode(myProfile),autoWalk=useRef(0),snapCam=useRef(true); // snapCam: vừa dịch chuyển → đặt camera thẳng sau lưng, không bay // autoWalk: thời điểm dừng tự đi (vừa vào trường từ cổng)
  const [localPair,setLocalPair]=useState(null);
  const nearbySeat=useRef(null),seatKey=useRef(''),lastSeatScan=useRef(0),seatFound=useRef(null);const [seatHint,setSeatHint]=useState(null);
  // Nhạc hội DJ: đang đứng trong vùng tham gia? đang nhảy điệu nào (0 = không)?
@@ -117,7 +117,8 @@ function Player({data,overview,paused,destination,onPosition,onNear,event}){
   if(m.type==='disconnected'&&anchor.current)choose('stand');
  };window.addEventListener('school-network',handler);return()=>window.removeEventListener('school-network',handler)},[]);
  useEffect(()=>{controller.current=createController(world);return()=>world.removeCharacterController(controller.current)},[world]);
- useEffect(()=>{if(destination&&body.current){choose('stand');const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);body.current.setNextKinematicTranslation({x,y,z});motion.current.vertical=0;if(destination.transport==='bike'){riding.current={from:null,color:'#286b70'};setRideUi(riding.current);}orbit.current.yaw=destination.yaw??0;autoWalk.current=destination.autoWalk?performance.now()+destination.autoWalk*1000:0;}},[destination]);
+ useEffect(()=>{if(destination&&body.current){snapCam.current=true;choose('stand');if(avatar.current)avatar.current.rotation.y=Math.PI+(destination.yaw??0); // quay mặt cùng hướng camera nhìn (vào trường), camera sau lưng
+const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);body.current.setNextKinematicTranslation({x,y,z});motion.current.vertical=0;if(destination.transport==='bike'){riding.current={from:null,color:'#286b70'};setRideUi(riding.current);}orbit.current.yaw=destination.yaw??0;autoWalk.current=destination.autoWalk?performance.now()+destination.autoWalk*1000:0;}},[destination]);
  useEffect(()=>{if(overview){camera.position.set(100,85,112);camera.lookAt(14,0,0)}},[overview]);
  useEffect(()=>{
   const down=e=>{
@@ -248,7 +249,7 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
   // Gửi vị trí: network.sendMove tự gộp (tối đa 10 lần/giây, chỉ khi thay đổi)
   if(destination&&!passengerDriver.current)network.sendMove(p.x,p.y,p.z,dance.current?baseYaw.current:avatar.current.rotation.y,(modeCode(mode.current,groundSit.current,riding.current?RIDE:dance.current)|(riding.current&&wheelie.current&&walk.current&&!paused&&!overview?WHEELIE_FLAG:0)));
   if(state.clock.elapsedTime-report.current>.2){report.current=state.clock.elapsedTime;onPosition({x:p.x,y:p.y,z:p.z})}
-  if(!overview){const o=orbit.current,target=position.clone().add(new THREE.Vector3(0,1.43,0)),offset=new THREE.Vector3(Math.sin(o.yaw)*Math.cos(o.pitch),Math.sin(o.pitch),Math.cos(o.yaw)*Math.cos(o.pitch));const hit=world.castRay(new rapier.Ray(target,offset),o.distance+.2,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,capsule.current,body.current);const d=hit?Math.max(.24,hit.timeOfImpact-.22):o.distance,desired=target.clone().addScaledVector(offset,d);if(hit&&camera.position.distanceTo(target)>d+.25)camera.position.copy(desired);else camera.position.lerp(desired,1-Math.exp(-12*Math.min(delta,.05)));camera.lookAt(target);avatar.current.visible=d>2.1;}else avatar.current.visible=true;
+  if(!overview){const o=orbit.current,target=position.clone().add(new THREE.Vector3(0,1.43,0)),offset=new THREE.Vector3(Math.sin(o.yaw)*Math.cos(o.pitch),Math.sin(o.pitch),Math.cos(o.yaw)*Math.cos(o.pitch));const hit=world.castRay(new rapier.Ray(target,offset),o.distance+.2,true,rapier.QueryFilterFlags.EXCLUDE_SENSORS,undefined,capsule.current,body.current);const d=hit?Math.max(.24,hit.timeOfImpact-.22):o.distance,desired=target.clone().addScaledVector(offset,d);if(hit&&camera.position.distanceTo(target)>d+.25)camera.position.copy(desired);else if(snapCam.current){camera.position.copy(desired);snapCam.current=false;}else camera.position.lerp(desired,1-Math.exp(-12*Math.min(delta,.05)));camera.lookAt(target);avatar.current.visible=d>2.1;}else avatar.current.visible=true;
   if(localPair)avatar.current.visible=false;
  },-.5);
  const swingNear=swingNearby;

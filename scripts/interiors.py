@@ -74,11 +74,14 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
         cube(name+' stair front landing',(sx,-1.8 if main else -1.7,z),(stairw,1.8 if main else 1.4,.2),'trim',True)
         # Slab openings stay clear above both flights, including the roof.
         if floor<floors-1:
-            cube(name+' half landing',(sx,4.55,z+1.8),(stairw,1.5,.2),'trim',True)
+            # chiếu nghỉ giữa tầng: kéo tới sát mặt trong tường sau (y 5.65), không còn khe 35 cm phía sau
+            cube(name+' half landing',(sx,4.725,z+1.8),(stairw,1.85,.2),'trim',True)
+            # 2 đợt thang: từ giếng thang giữa (|x-sx| .5) tới sát mặt vách ngăn 2 bên (|x-sx| stairw/2-.08) — không hở cạnh tường
+            inner=stairw/2-.08;fw=inner-.5;fc=(inner+.5)/2
             for j in range(12):
                 y=-1+(j+.5)*.4
-                cube(name+' stair up',(sx-2,y,z+(j+1)*.15),(3,.415,.18),'stone',True)
-                cube(name+' stair return',(sx+2,y,z+3.6-j*.15),(3,.415,.18),'stone',True)
+                cube(name+' stair up',(sx-fc,y,z+(j+1)*.15),(fw,.415,.18),'stone',True)
+                cube(name+' stair return',(sx+fc,y,z+3.6-j*.15),(fw,.415,.18),'stone',True)
             # Separate parallel rails on each flight; posts end at the actual treads.
             for dx,ascending in [(-.48,True),(.48,False)]:
                 low=z+1.05 if ascending else z+4.65
@@ -91,8 +94,23 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
             # Close the two flight rails across the central gap, without projecting into the landing.
             beam(name+' central handrail connector',(sx-.48,3.8,z+2.85),(sx+.48,3.8,z+2.85),.065,'brick')
             beam(name+' central connector support',(sx,3.8,z+1.9),(sx,3.8,z+2.85),.028,'trim')
-            for dx in [-3.6,3.6]:cube(name+' stair wall lining',(sx+dx,1.9,z+1.8),(.2,6.1,3.4),'wall',True)
+            # Chiếu tới mỗi tầng (y -1): tay vịn đợt vừa lên (x sx+.48) nối liền sang tay vịn đợt đi tiếp (x sx-.48) — không còn đứt quãng.
+            if floor>0:
+                beam(name+' floor landing handrail connector',(sx+.48,-1,z+1.05),(sx-.48,-1,z+1.05),.065,'brick')
+                beam(name+' floor landing connector support',(sx,-1,z+.1),(sx,-1,z+1.05),.028,'trim')
             stair_routes.append({'building':name,'floor':floor,'roof':False,'path':[wp(cx,cy,angle,sx-1.65,-2.1,z+.98),wp(cx,cy,angle,sx-1.65,4.35,z+2.78),wp(cx,cy,angle,sx+1.65,4.35,z+2.78),wp(cx,cy,angle,sx+1.65,-2.1,z+4.58)]})
+        # (Bỏ 'stair wall lining' riêng: 2 bên giếng thang đã có vách ngăn lớp học ở mọi tầng — x stair_left / stair_right, dãy chính
+        #  cầu thang trái: 'segment end partition' x -24.8 & vách lớp x -17.2 — cùng độ dày, cùng mặt phẳng với các vách khác.)
+        if floor==floors-1 and floor>0:
+            # Tầng trên cùng: giếng thang phía đợt đi lên để trống → lan can chắn dọc mép y -1, từ đầu tay vịn (x sx+.48)
+            # tới tường lớp học (x sx-3.5); song đứng mỗi ~0.3 m; khung va chạm cao 1.1 m (xoá khỏi mô hình hiển thị sau khi xuất).
+            x0,x1=stair_left+.08,sx+.48   # chạm đúng mặt vách ngăn lớp học
+            beam(name+' top stair guard handrail',(x1,-1,z+1.05),(x0,-1,z+1.05),.065,'brick')
+            beam(name+' top stair guard bottom rail',(x1,-1,z+.2),(x0,-1,z+.2),.03,'trim')
+            n=int((x1-x0)/.3)
+            for k in range(n+1):
+                xx=x0+(x1-x0)*k/n;beam(name+' top stair guard baluster',(xx,-1,z+.2),(xx,-1,z+1.05),.028,'trim')
+            cube(name+' Stair top guard rail collider',((x0+x1)/2,-1,z+.65),(x1-x0,.12,1.1),'trim',True)
         if main:
             for original in set(bpy.data.objects)-stair_before:
                 clone=original.copy();clone.data=original.data;bpy.context.collection.objects.link(clone);clone.location.x-=42
@@ -100,9 +118,10 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
             if floor<floors-1:
                 source=stair_routes[-1]
                 stair_routes.append({**source,'building':name+' · Cầu thang trái','path':[[p[0]-42,p[1],p[2]] for p in source['path']]})
-        wallh=1.05 if floor==floors else 3.4
-        cube(name+' rear wall',(0,5.75,z+wallh/2+.1),(length,.2,wallh),'cream',True)
-        for side in [-1,1]:cube(name+' end wall',(side*length/2,2.5,z+wallh/2+.1),(.2,6.7,wallh),'cream',True)
+        # tường sau / tường hồi cao liền từ sàn tầng này tới sàn tầng trên (z → z+3.6): giếng thang không có sàn che → trước đây hở 1 dải 20 cm giữa 2 tầng
+        wallh,wallz=(1.05,z+.625) if floor==floors else (3.6,z+1.8)
+        cube(name+' rear wall',(0,5.75,wallz),(length,.2,wallh),'cream',True)
+        for side in [-1,1]:cube(name+' end wall',(side*length/2,2.3,wallz),(.2,7.1,wallh),'cream',True)   # y -1.25 → 5.85: kín góc trước
         if floor:
             # Guard exposed corridor ends, while retaining the connections to the main wing.
             exposed=[-1] if name.startswith('B') else [1] if name.startswith('C') else [-1,1]
@@ -123,18 +142,18 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
             continue
         for j,(x,w) in enumerate(layout):
             left=x-w/2;door=x-1.45;dw=1.25
-            cube(name+' partition',(left,2.2,z+1.8),(.16,6.8,3.4),'wall',True)
-            cube(name+' door lintel',(door,-1.15,z+3.05),(dw,.2,.7),'wall',True)
+            cube(name+' partition',(left,2.275,z+1.8),(.16,6.95,3.6),'wall',True)   # y -1.2 → 5.75: kín khe ở góc sau
+            cube(name+' door lintel',(door,-1.15,z+3.1),(dw,.2,.8),'wall',True)          # z+2.7 → 3.5 (sát trần)
             a=left+.08;b=door-dw/2
-            if b>a:cube(name+' door side',((a+b)/2,-1.15,z+1.75),(b-a,.2,3.3),'wall',True)
+            if b>a:cube(name+' door side',((a+b)/2,-1.15,z+1.8),(b-a,.2,3.4),'wall',True)   # z+.1 → 3.5
             a=door+dw/2;b=x+w/2;wx=(a+b)/2
-            cube(name+' sill',((a+b)/2,-1.15,z+.5),(b-a,.2,.8),'wall',True)
-            cube(name+' window head',((a+b)/2,-1.15,z+3.1),(b-a,.2,.55),'wall',True)
+            cube(name+' sill',((a+b)/2,-1.15,z+.57),(b-a,.2,.94),'wall',True)           # z+.1 → 1.04: kín khe dưới cửa sổ
+            cube(name+' window head',((a+b)/2,-1.15,z+3.16),(b-a,.2,.68),'wall',True)   # z+2.82 → 3.5 (sát trần)
             for dx in [-dw/2,dw/2]:cube(name+' timber jamb',(door+dx,-1.25,z+1.4),(.065,.12,2.6),'wood')
             cube(name+' open timber door',(door-dw/2+.02,-.56,z+1.36),(.075,1.13,2.5),'wood')
             for aa,bb in [(a,wx-.9),(wx+.9,b)]:
                 if bb>aa:cube(name+' window side pier',((aa+bb)/2,-1.15,z+1.94),(bb-aa,.2,1.8),'wall',True)
-            cube(name+' window glass',(wx,-1.18,z+1.94),(1.7,.035,1.8),'window',True)
+            cube(name+' window glass',(wx,-1.18,z+1.94),(1.8,.035,1.8),'window',True)
             for dx in [-.6,0,.6]:cube(name+' window grille',(wx+dx,-1.29,z+1.94),(.035,.035,1.8),'wood')
             for zz in [1.03,1.94,2.86]:cube(name+' window crossbar',(wx,-1.3,z+zz),(1.8,.05,.055),'wood')
             # Exterior rear windows and end-wall windows make the complete wings readable.
@@ -152,7 +171,10 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
                     cube(name+' desk legs',(x+dx,yy,z+.45),(1.35,.12,.7),'metal')
                     cube(name+' desk bench',(x+dx,yy-.6,z+.48),(1.4,.35,.09),'wood')
             rooms.append({'id':rid,'building':name,'floor':floor+1,'door':wp(cx,cy,angle,door,-2,z+.98),'inside':wp(cx,cy,angle,door,-.15,z+.98),'aisle':wp(cx,cy,angle,door,4.5,z+.98)})
-        for xx in [stair_left,stair_right]:cube(name+' stair room partition',(xx,2.2,z+1.8),(.16,6.8,3.4),'wall',True)
+        for xx in [stair_left,stair_right]:cube(name+' stair room partition',(xx,2.275,z+1.8),(.16,6.95,3.6),'wall',True)
+        # 6. mép lớp cuối mỗi đoạn không giáp vách cầu thang / tường hồi (VD dãy chính, cạnh cầu thang trái x -24.8) → thêm vách
+        for lo,hi in segments:
+            if all(abs(hi-xx)>.05 for xx in [stair_left,stair_right,length/2]):cube(name+' segment end partition',(hi,2.275,z+1.8),(.16,6.95,3.6),'wall',True)
         for side in [-1,1]:
             for yy in [0,3.7]:cube(name+' end facade window',(side*(length/2+.12),yy,z+1.9),(.045,1.5,1.65),'window')
         column_positions=sorted({round(xx,6) for x,w in layout for xx in [x-w/2,x,x+w/2]})

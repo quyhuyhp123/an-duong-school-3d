@@ -14,7 +14,7 @@ import {BasketballGame} from './Basketball';
 import {PerformanceMonitor} from '@react-three/drei';
 import {IS_TOUCH} from './device';
 import {TouchControls} from './TouchControls';
-import {useProfile,describeProfile} from './profile';
+import {useProfile,describeProfile,getProfile} from './profile';
 
 const photos=Object.entries(import.meta.glob('../image/*',{eager:true,query:'?url',import:'default'})).map(([name,url])=>({name:name.split('/').pop(),url}));
 function CampusMap({position}){
@@ -49,13 +49,14 @@ class ErrorBoundary extends React.Component{
   render(){return this.state.error?<div className="load-error">Không tải được cảnh 3D.<p>{this.state.error.message}</p><button onClick={()=>location.reload()}>Tải lại</button></div>:this.props.children}
 }
 function App(){
-  const [overview,setOverview]=useState(true),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0),[greet,setGreet]=useState(false);
+  // không còn cảnh nhìn toàn trường từ trên cao lúc mở trang (camera bay xuống làm giật): luôn ở góc nhìn nhân vật
+  const [overview,setOverview]=useState(false),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0),[greet,setGreet]=useState(false);
   const [basket,setBasket]=useState(false); // mini-game ném bóng rổ
   // độ phân giải: điện thoại 1 → 1.25, máy tính 1 → 1.5; khung hình tụt thì tự hạ (thấp nhất 0.75), ổn định lại thì nâng dần
   const MAX_DPR=IS_TOUCH?1.25:1.5,[dpr,setDpr]=useState(MAX_DPR),[compact,setCompact]=useState(IS_TOUCH); // compact: thu gọn khung tên trường
   useEffect(()=>{const open=e=>{setBasket(e.detail==='flap'?'flap':'shoot');setMap(false);setAlbum(false);};window.addEventListener('open-basketball',open);return()=>window.removeEventListener('open-basketball',open);},[]);
   const profile=useProfile(),[onboard,setOnboard]=useState('welcome'); // màn hình chào / chọn nhân vật (null = đang chơi)
-  const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(null);
+  const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(()=>({position:entryFor(getProfile()?.transport==='bike'?'bike':'walk'),yaw:0,time:0})); // ngay từ đầu nhân vật đứng ở cổng (sau màn hình chào camera đã khoá sẵn sau lưng)
   useEffect(()=>{const fn=e=>{if(e.repeat||greet||onboard||basket||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map,greet]);
   // Sự kiện ban đêm do trang quản lý chọn (DJ / lửa trại) + phòng trò chuyện
   const live=useLive();
@@ -74,7 +75,7 @@ function App(){
     return t>.2&&t<1.12&&Math.hypot(position.x-r.door[0]-t*dx,position.z-r.door[2]-t*dz)<2.5;
   });
   return <main>
-    <ErrorBoundary><Canvas shadows camera={{position:[100,85,112],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:!IS_TOUCH}}>
+    <ErrorBoundary><Canvas shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:!IS_TOUCH}}>
       <PerformanceMonitor onDecline={()=>setDpr(d=>Math.max(.75,d-.25))} onIncline={()=>setDpr(d=>Math.min(MAX_DPR,d+.25))} flipflops={4}/>
       <color attach="background" args={['#c8dce6']}/><fog attach="fog" args={['#c8dce6',170,320]}/>
       <DayCycle/>

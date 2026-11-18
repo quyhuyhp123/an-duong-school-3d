@@ -1026,7 +1026,7 @@ for pot in list(bpy.data.objects):
         cube('Planter support collider',tuple(pot.location),(w,d,height),'grass',True)
 export_campus_data()
 # khung va chạm của lan can nhà xe chỉ dùng cho dữ liệu va chạm, không đưa vào mô hình hiển thị
-for ob in [o for o in bpy.data.objects if o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider'))]:bpy.data.objects.remove(ob,do_unlink=True)
+for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
 
 # Merge static meshes by material for a small GLB and fewer draw calls on the web.
 fonts=[o for o in bpy.context.scene.objects if o.type=='FONT']

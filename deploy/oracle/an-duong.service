@@ -1,0 +1,27 @@
+[Unit]
+Description=An Duong 3D school (web + API + WebSocket)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=anduong
+Group=anduong
+WorkingDirectory=/opt/an-duong-school-3d
+EnvironmentFile=/etc/anduong.env
+ExecStart=/usr/bin/node server/start.mjs
+Restart=always
+RestartSec=3
+# tắt êm: server nhận SIGTERM, đóng kết nối, ghi xong dữ liệu
+KillSignal=SIGTERM
+TimeoutStopSec=10
+LimitNOFILE=65535
+# bảo vệ hệ thống: chỉ được ghi vào thư mục dữ liệu
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/anduong
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

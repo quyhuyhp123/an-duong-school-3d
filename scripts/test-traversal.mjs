@@ -53,6 +53,17 @@ for(const place of data.places.filter(p=>data.stairs.some(s=>s.building===p.id))
     assert(body.translation().y<(place.id.startsWith('D')?1.9:1.3),'Must return to ground level');
   });
 }
+// tầng trên cùng: giếng thang phía đợt đi lên có lan can chắn → đi từ đầu cầu thang về phía giếng thang không bị rơi
+test('Top-floor stairwells are guarded by a railing',()=>{
+  const buildings=[...new Set(data.stairs.map(s=>s.building))];
+  for(const b of buildings){
+    // path[0] = chân đợt đi lên (cục bộ x sx-1.65, y -2.1), path[1] = đầu đợt (y 4.35) → điểm y -0.5 nằm trong giếng thang, sau lan can
+    const routes=data.stairs.filter(s=>s.building===b),last=routes.at(-1),top=last.path.at(-1),a=last.path[0],o=last.path[1],t=1.6/6.45;
+    const landing=[a[0],top[1],a[2]],inside=[a[0]+(o[0]-a[0])*t,top[1],a[2]+(o[2]-a[2])*t];
+    set(top);go(landing,b+' along top landing');let blocked=false;try{go(inside,b+' walk into stairwell')}catch{blocked=true}
+    assert(blocked,b+': lan can phải chặn lối vào giếng thang');assert(Math.abs(body.translation().y-top[1])<.4,b+': không được rơi xuống giếng thang');
+  }
+});
 test('Both corner corridors connect at all three floors',()=>{
   for(const side of [-1,1])for(let floor=0;floor<3;floor++){
     const h=.98+floor*3.6;
