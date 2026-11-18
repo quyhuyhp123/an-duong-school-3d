@@ -12,13 +12,15 @@
     "test:multiplayer": "node scripts/test-multiplayer.mjs",
     "test:infra": "node scripts/test-infra.mjs",
     "test:load": "node scripts/load-test.mjs",
-    "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs",
-    "model:compress": "node scripts/compress-model.mjs"
+    "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs && node scripts/test-db-store.mjs",
+    "model:compress": "node scripts/compress-model.mjs",
+    "test:db": "node scripts/test-db-store.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.0",
     "@react-three/fiber": "^9.0.0",
     "@react-three/rapier": "^2.0.0",
+    "pg": "^8.23.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.180.0",

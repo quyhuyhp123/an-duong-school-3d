@@ -6,9 +6,12 @@
 //  - File hỏng / không đọc được (khác với "chưa có file") → từ chối ghi đè, báo lỗi, để có thể khôi phục thủ công.
 //  - Giữ bản sao .bak (cập nhật tối đa mỗi 10 phút) để khôi phục khi cần.
 //  - Gộp nhiều thay đổi đến cùng lúc (VD: 50 tin chat trong 1 giây) thành một lần ghi.
+//  - Có DATABASE_URL → lưu vào PostgreSQL (server/db.js) thay vì file: dùng cho hosting có ổ đĩa không bền (Render Free).
+//    Lần đầu cơ sở dữ liệu chưa có khoá đó mà trong DATA_DIR có file (VD data/events.json trong repo) → lấy file làm dữ liệu ban đầu.
 import {readFile,open,mkdir,rename,copyFile,stat} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {metrics} from './metrics.js';
+import {db,dbEnabled} from './db.js';
 
 export const DATA_DIR=resolve(process.env.DATA_DIR??'data');
 const BACKUP_EVERY_MS=10*60*1000;
@@ -19,6 +22,13 @@ export function jsonFile(name,fallback,{batchMs=0}={}){
  async function load(){
   if(cache!==undefined)return cache;
   if(loadError)throw loadError;
+  if(dbEnabled){
+   // lỗi mạng tạm thời → ném lỗi, lần gọi sau thử lại (không khoá vĩnh viễn như file hỏng)
+   const row=await db.get(name);
+   if(row){cache=row.value;return cache;}
+   try{cache=JSON.parse(await readFile(file,'utf8'));}catch{cache=structuredClone(fallback);}
+   return cache;
+  }
   try{cache=JSON.parse(await readFile(file,'utf8'));}
   catch(e){
    if(e.code==='ENOENT'){cache=structuredClone(fallback);}
@@ -27,6 +37,7 @@ export function jsonFile(name,fallback,{batchMs=0}={}){
   return cache;
  }
  async function persist(value){
+  if(dbEnabled)return db.put(name,value);
   await mkdir(dirname(file),{recursive:true});
   if(Date.now()-lastBackup>BACKUP_EVERY_MS){try{await stat(file);await copyFile(file,file+'.bak');}catch{}lastBackup=Date.now();}
   const tmp=file+'.tmp',fh=await open(tmp,'w');

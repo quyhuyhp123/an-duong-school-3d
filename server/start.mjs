@@ -12,6 +12,7 @@ import {handleMetrics,metrics,startMonitorLog} from './metrics.js';
 import {createStatic} from './static.js';
 import {handleMedia} from './music.js';
 import {applyCors} from './net.js';
+import {checkDb} from './db.js';
 
 const serveStatic=createStatic('dist');
 const route=url=>url.startsWith('/api/admin')?'admin':url.startsWith('/api/wishes')?'wishes':url.startsWith('/api/')?'api':'static';
@@ -31,6 +32,7 @@ const server=createServer(async(req,res)=>{
 // Giữ kết nối HTTP lâu hơn timeout mặc định của load balancer để tránh lỗi 502 ngắt quãng
 server.keepAliveTimeout=65000;server.headersTimeout=66000;server.requestTimeout=300000; // 5 phút: đủ cho admin tải file nhạc lớn qua mạng chậm
 
+checkDb();
 attachMultiplayer(server);
 startMonitorLog();
 const port=Number(process.env.PORT??5173);

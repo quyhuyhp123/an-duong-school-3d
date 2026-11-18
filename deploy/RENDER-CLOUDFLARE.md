@@ -76,8 +76,21 @@ Học sinh vào: `https://<tên-dự-án>.pages.dev` · Trang quản lý: `https
   Muốn máy chủ luôn thức: tạo kiểm tra miễn phí trên <https://uptimerobot.com> gọi `https://anduong-server.onrender.com/healthz`
   mỗi 5 phút (gói Free có 750 giờ/tháng — đủ cho 1 dịch vụ chạy cả tháng).
 - **Ổ đĩa không bền:** mỗi lần Render khởi động lại / deploy bản mới, thư mục `data/` trở về trạng thái trong Git →
-  **lời chúc, chat, bảng xếp hạng, nhạc admin tải lên sẽ mất**. Giữ lâu dài cần ổ đĩa bền (Render Starter + Disk, có phí)
-  hoặc chuyển phần lưu trữ sang cơ sở dữ liệu miễn phí bên ngoài (làm sau nếu cần).
+  lời chúc, chat, bảng xếp hạng, nhạc admin tải lên sẽ mất — **trừ khi đặt `DATABASE_URL`** (bước C bên dưới).
+
+## Bước C — Lưu dữ liệu bền vào Neon (PostgreSQL miễn phí)
+
+1. <https://neon.tech> → **Sign up** (đăng nhập bằng GitHub, không cần thẻ).
+2. **Create project**: tên tuỳ ý · Postgres version mặc định · **Region: AWS Asia Pacific (Singapore)** → **Create**.
+3. Trang **Dashboard** của project → **Connect** → chọn **Connection string**, để mặc định (*Pooled connection* bật) →
+   bấm **Copy**. Chuỗi có dạng `postgresql://neondb_owner:...@ep-xxxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require`.
+4. Render → dịch vụ → **Environment → Edit → Add**: `DATABASE_URL` = chuỗi vừa copy → **Save Changes**.
+5. Xem **Logs** của Render: thấy dòng `[db] đã kết nối PostgreSQL — dữ liệu lưu bền trong cơ sở dữ liệu` là xong.
+   (Báo `KHÔNG kết nối được PostgreSQL` → kiểm tra lại chuỗi, không thừa dấu cách / dấu ngoặc kép.)
+
+Máy chủ tự tạo bảng `app_store` (dữ liệu JSON: lời chúc, chat, sự kiện, bảng xếp hạng, danh sách nhạc) và `app_files`
+(file nhạc DJ). Gói miễn phí của Neon có 0,5 GB — đủ cho rất nhiều lời chúc và vài bài nhạc (mỗi bài ≤ 40 MB).
+Xem dữ liệu: Neon → **Tables** (hoặc **SQL Editor**: `SELECT key, updated_at FROM app_store;`).
 - Đông người (vài trăm người cùng lúc) mà vẫn giật → nâng Render lên **Starter (~7 USD/tháng)**: CPU gấp 5 lần, không ngủ.
 
 ## Khi đổi mô hình 3D (Blender)

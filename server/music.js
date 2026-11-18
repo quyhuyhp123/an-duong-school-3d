@@ -3,11 +3,13 @@
 //   DELETE /api/admin/music/:id                                              → xoá bài
 //   GET    /media/music/:id.:ext     (công khai, hỗ trợ Range, cache dài)    → phát nhạc
 // File lưu ở DATA_DIR/music/, danh sách ở DATA_DIR/music.json.
+// Có DATABASE_URL: file nhạc lưu thêm 1 bản trong cơ sở dữ liệu → máy chủ khởi động lại (ổ đĩa trống) thì tự lấy lại khi có người nghe.
 import {createWriteStream,createReadStream} from 'node:fs';
-import {mkdir,rename,unlink,stat} from 'node:fs/promises';
+import {mkdir,rename,unlink,stat,readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {DATA_DIR,jsonFile,clean,json} from './store.js';
+import {db,dbEnabled} from './db.js';
 
 export const MAX_MUSIC_BYTES=Number(process.env.MAX_MUSIC_MB??40)*1024*1024;
 const TYPES={'.mp3':'audio/mpeg','.m4a':'audio/mp4','.aac':'audio/aac','.ogg':'audio/ogg','.oga':'audio/ogg','.opus':'audio/ogg','.wav':'audio/wav','.webm':'audio/webm','.flac':'audio/flac'};
@@ -36,6 +38,7 @@ export async function uploadMusic(req){
  });
  if(tooBig||size<1024){await unlink(tmp).catch(()=>{});return {status:tooBig?413:400,body:{error:tooBig?`File quá lớn (tối đa ${MAX_MUSIC_BYTES/1024/1024} MB).`:'File rỗng hoặc lỗi khi tải lên.'}};}
  await rename(tmp,final);
+ if(dbEnabled){try{await db.putFile('music/'+id+ext,await readFile(final));}catch(e){await unlink(final).catch(()=>{});console.error('[music] không lưu được vào cơ sở dữ liệu:',e.message);return {status:500,body:{error:'Không lưu được file nhạc vào cơ sở dữ liệu, thử lại sau nhé.'}};}}
  const track={id,name,ext,type:TYPES[ext],size,uploadedAt:new Date().toISOString()};
  await library.update(l=>{const next=Array.isArray(l)?l:[];next.push(track);return next;});
  return {status:201,body:{track}};
@@ -44,6 +47,7 @@ export async function deleteMusic(id){
  const t=await findMusic(id);if(!t)return false;
  await library.update(l=>(Array.isArray(l)?l:[]).filter(x=>x.id!==id));
  await unlink(resolve(DIR,t.id+t.ext)).catch(()=>{});
+ if(dbEnabled)await db.deleteFile('music/'+t.id+t.ext).catch(e=>console.error('[music] xoá trong cơ sở dữ liệu lỗi:',e.message));
  return true;
 }
 
@@ -53,7 +57,8 @@ export async function handleMedia(req,res){
  if(!m)return false;
  const t=await findMusic(m[1]);
  if(!t||t.ext!==m[2]){res.writeHead(404,{'Cache-Control':'no-store'}).end();return true;}
- const path=resolve(DIR,t.id+t.ext),info=await stat(path).catch(()=>null);
+ const path=resolve(DIR,t.id+t.ext);let info=await stat(path).catch(()=>null);
+ if(!info&&dbEnabled&&await restoreFromDb(t,path))info=await stat(path).catch(()=>null);
  if(!info){res.writeHead(404).end();return true;}
  const headers={'Content-Type':t.type,'Accept-Ranges':'bytes','Cache-Control':'public, max-age=31536000, immutable','Access-Control-Allow-Origin':'*'};
  const range=/^bytes=(\d*)-(\d*)$/.exec(req.headers.range??'');
@@ -68,5 +73,16 @@ export async function handleMedia(req,res){
  res.writeHead(200,{...headers,'Content-Length':info.size});
  if(req.method==='HEAD')return res.end(),true;
  createReadStream(path).on('error',()=>res.destroy()).pipe(res);return true;
+}
+// Ổ đĩa trống sau khi máy chủ khởi động lại → ghi lại file nhạc từ cơ sở dữ liệu (nhiều người cùng nghe chỉ tải 1 lần)
+const restoring=new Map();
+function restoreFromDb(t,path){
+ const key='music/'+t.id+t.ext;
+ if(!restoring.has(key))restoring.set(key,(async()=>{
+  try{const data=await db.getFile(key);if(!data)return false;await mkdir(DIR,{recursive:true});await writeFile(path+'.part',data);await rename(path+'.part',path);return true;}
+  catch(e){console.error('[music] khôi phục từ cơ sở dữ liệu lỗi:',e.message);return false;}
+  finally{restoring.delete(key);}
+ })());
+ return restoring.get(key);
 }
 export {json};
