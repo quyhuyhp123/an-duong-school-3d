@@ -48,6 +48,18 @@ class ErrorBoundary extends React.Component{
   state={error:null};static getDerivedStateFromError(error){return {error}}
   render(){return this.state.error?<div className="load-error">Không tải được cảnh 3D.<p>{this.state.error.message}</p><button onClick={()=>location.reload()}>Tải lại</button></div>:this.props.children}
 }
+function OnlineCount(){
+  const [count,setCount]=useState(null);
+  useEffect(()=>{
+    function update({detail}){
+      if(detail.type==='disconnected')setCount(null);
+      else if(Number.isInteger(detail.online))setCount(detail.online);
+    }
+    window.addEventListener('school-network',update);
+    return ()=>window.removeEventListener('school-network',update);
+  },[]);
+  return <span className="online-count" title="Số người đang kết nối với trường">{count??'—'} online</span>;
+}
 function App(){
   // không còn cảnh nhìn toàn trường từ trên cao lúc mở trang (camera bay xuống làm giật): luôn ở góc nhìn nhân vật
   const [overview,setOverview]=useState(false),[album,setAlbum]=useState(false),[map,setMap]=useState(false),[near,setNear]=useState(false),[index,setIndex]=useState(0),[greet,setGreet]=useState(false);
@@ -92,7 +104,7 @@ function App(){
      {live.event&&<EventPill event={live.event} note={live.note} onGo={()=>visit(EVENT_INFO[live.event].spot)}/>}
     </div>
     {/* góc phải trên: nhân vật & bản đồ (điện thoại: chỉ biểu tượng) */}
-    <nav className="top-nav"><button onClick={()=>setOnboard('creator')} title={describeProfile(profile)} aria-label="Nhân vật"><span className="ico" aria-hidden="true">👤</span><span className="lbl">Nhân vật</span></button><button onClick={()=>{setMap(true);setAlbum(false)}} aria-label="Bản đồ"><span className="ico" aria-hidden="true">🗺️</span><span className="lbl">Bản đồ</span><kbd>M</kbd></button></nav>
+    <nav className="top-nav"><OnlineCount/><button onClick={()=>setOnboard('creator')} title={describeProfile(profile)} aria-label="Nhân vật"><span className="ico" aria-hidden="true">👤</span><span className="lbl">Nhân vật</span></button><button onClick={()=>{setMap(true);setAlbum(false)}} aria-label="Bản đồ"><span className="ico" aria-hidden="true">🗺️</span><span className="lbl">Bản đồ</span><kbd>M</kbd></button></nav>
     {IS_TOUCH&&!onboard&&!overview&&!basket&&!map&&!album&&!greet&&<TouchControls near={near}/>}
     {!overview&&near&&!album&&!map&&<div className="prompt"><kbd>E</kbd> Xem ký ức sân trường</div>}
     {live.chatOpen&&<ChatPanel messages={live.chat} title={live.event?`Trò chuyện · ${EVENT_INFO[live.event].title}`:'Trò chuyện chung'}/>}

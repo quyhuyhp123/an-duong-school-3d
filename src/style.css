@@ -221,6 +221,22 @@ header .seal{display:grid}
 .character-nameplate{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;border-radius:8px;background:rgba(20,34,30,.72);color:#fff;font:500 11px/1.3 system-ui,sans-serif;text-shadow:0 1px 2px #0008;border:1px solid #ffffff28}
 .character-nameplate strong{font-size:13px;font-weight:700;color:#fff8d9}
 .character-nameplate span{color:#e2eee7}
+@media (max-width:760px), (hover:none) and (pointer:coarse){
+ .character-nameplate{
+  width:max-content;
+  max-width:min(140px,38vw);
+  gap:1px;
+  padding:3px 7px;
+  border-radius:6px;
+  background:rgba(20,34,30,.82);
+  font-size:10px;
+  line-height:1.2;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:anywhere;
+ }
+ .character-nameplate strong{font-size:11px;font-weight:650}
+}
 
 .chat-sender{padding:8px 10px 0;color:#c8d8cd;font-size:11px;overflow-wrap:anywhere}
 .chat-name{overflow-wrap:anywhere}
@@ -229,3 +245,5 @@ header .seal{display:grid}
 .bb-layout>.bb-board{position:static;inset:auto;align-self:start;min-width:0;width:auto;max-width:none;letter-spacing:normal;grid-column:2;grid-row:1}
 .bb-layout>.bb-game{min-width:0;grid-column:1;grid-row:1}
 @media(max-width:900px){.bb-layout>.bb-board{grid-column:1;grid-row:2}}
+
+.online-count{align-self:center;padding:5px 8px;border-radius:8px;background:#fff9ed;color:#285542;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}

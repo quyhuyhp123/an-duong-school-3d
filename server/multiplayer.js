@@ -45,7 +45,7 @@ export function attachMultiplayer(server,options={}){
  const X=new Float32Array(CAP),Z=new Float32Array(CAP),version=new Uint32Array(CAP);
  const records=Buffer.alloc(CAP*ENTITY_BYTES),encodedVersion=new Uint32Array(CAP);
  const freeSlots=Array.from({length:CAP-1},(_,i)=>i+1); // slot 0 không dùng; trả slot về cuối hàng để không tái dùng ngay
- let globalVersion=1,tickNo=0,gone=[];const metaChanged=new Set();
+ let globalVersion=1,tickNo=0,lastOnline=0,gone=[];const metaChanged=new Set();
  const active=[]; // danh sách player để duyệt nhanh
 
  const sendText=(p,text)=>{
@@ -172,6 +172,7 @@ export function attachMultiplayer(server,options={}){
   const t0=performance.now();
   if(slice===0){
    tickNo++;sliceTotal=0;
+   if(players.size!==lastOnline){lastOnline=players.size;broadcastText(JSON.stringify({type:'presence',online:lastOnline}));}
    if(gone.length){broadcastText(JSON.stringify({type:'gone',ids:gone}));gone=[];}
    if(metaChanged.size){const list=[...metaChanged].filter(p=>players.has(p.id)).map(metaOf);metaChanged.clear();if(list.length)broadcastText(JSON.stringify({type:'meta',list,online:players.size}));}
   }

@@ -14,7 +14,7 @@ export const LAMP_POSTS=[
  [5,10.5,.28],   // trên bồn cau phải, đầu hàng
  [25.5,1.5],     // cạnh dãy C
  [25.8,-30.5],   // góc dãy A – dãy C
- [-19.5,-31],    // trước dãy A, bên trái sân khấu
+ [-28,-30.5],    // góc sân giữa dãy A và B, cách mép hành lang
  [-32,32],      // góc vườn cạnh nhà gần cổng
  [-3,20,.28],    // giữa hàng cau trái
  [5,20,.28],    // trên bồn cau phải, giữa hàng
@@ -121,8 +121,8 @@ export function CourtyardLamps(){
 function seededRandom(seed){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
 export function useLitClassrooms(scene,rooms,share=.5){
  const mats=useMemo(()=>({
-  window:new THREE.MeshStandardMaterial({color:'#3b4a48',emissive:'#ffc874',emissiveIntensity:0,roughness:.25}),
-  glass:new THREE.MeshStandardMaterial({color:'#b8dbe6',emissive:'#ffc874',emissiveIntensity:0,roughness:.05,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}),
+  window:new THREE.MeshStandardMaterial({color:'#3b4a48',emissive:'#fff8ee',emissiveIntensity:0,roughness:.25}),
+  glass:new THREE.MeshStandardMaterial({color:'#b8dbe6',emissive:'#fff8ee',emissiveIntensity:0,roughness:.05,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}),
  }),[]);
  const last=useRef(-1);
  useEffect(()=>{
@@ -131,6 +131,7 @@ export function useLitClassrooms(scene,rooms,share=.5){
   const lit=new Set(rooms.filter(()=>rand()<share).map(r=>r.id));
   const targets=[];scene.traverse(o=>{if(!o.isMesh||o.userData.litSplit)return;const n=o.material?.name??'';if(/^glass$/i.test(n))targets.push([o,'glass']);else if(/window/i.test(o.name)||/window/i.test(n))targets.push([o,'window']);});
   let total=0;
+  const restore=[];
   for(const [win,kind] of targets){
    win.updateWorldMatrix(true,false);
    const g=win.geometry,pos=g.attributes.position,idx=g.index?Array.from(g.index.array):Array.from({length:pos.count},(_,i)=>i);
@@ -142,15 +143,26 @@ export function useLitClassrooms(scene,rooms,share=.5){
     for(const r of rooms){const dy=c.y-(r.inside[1]+1.9);if(Math.abs(dy)>1.5)continue;const dd=(c.x-r.inside[0])**2+(c.z-r.inside[2])**2;if(dd<bd){bd=dd;best=r;}}
     (best&&lit.has(best.id)?glow:keep).push(idx[t],idx[t+1],idx[t+2]);
    }
-   win.userData.litSplit=true;
    if(!glow.length)continue;
-   g.setIndex(keep);
+   if(!keep.length){
+    // Ô kính sáng toàn bộ chỉ cần đổi vật liệu, vẫn dùng chung geometry gốc.
+    const original=win.material;
+    win.material=mats[kind];
+    total+=glow.length/3;
+    restore.push(()=>{win.material=original;});
+    continue;
+   }
+   // Các ô kính dùng chung geometry trong GLB. Chỉ đổi geometry của ô đang xử lý.
+   const unlitGeo=new THREE.BufferGeometry();for(const [k,a] of Object.entries(g.attributes))unlitGeo.setAttribute(k,a);unlitGeo.setIndex(keep);
+   win.geometry=unlitGeo;
    const litGeo=new THREE.BufferGeometry();for(const [k,a] of Object.entries(g.attributes))litGeo.setAttribute(k,a);litGeo.setIndex(glow);
    const litMesh=new THREE.Mesh(litGeo,mats[kind]);litMesh.name='Lit classroom windows';litMesh.renderOrder=win.renderOrder;
    litMesh.position.copy(win.position);litMesh.quaternion.copy(win.quaternion);litMesh.scale.copy(win.scale);
    win.parent.add(litMesh);total+=glow.length/3;
+   restore.push(()=>{litMesh.removeFromParent();win.geometry=g;unlitGeo.dispose();litGeo.dispose();});
   }
   if(total)console.info(`[đèn lớp] ${lit.size}/${rooms.length} phòng bật đèn tối nay, ${total} tam giác kính sáng`);
+  return ()=>restore.forEach(fn=>fn());
  },[scene,rooms,share]);
  useFrame(state=>{if(state.clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=state.clock.elapsedTime;
   const n=nightFactor();mats.window.emissiveIntensity=1.9*n;mats.glass.emissiveIntensity=1.9*n;mats.glass.opacity=.28+.62*n;});

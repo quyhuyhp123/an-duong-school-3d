@@ -24,13 +24,17 @@ async function until(fn,ms=3000){const end=Date.now()+ms;while(Date.now()<end){c
 const meta=(c,id)=>{let v=null;for(const m of c.messages){if(m.type==='welcome')for(const x of m.meta)if(x.id===id)v=x;if(m.type==='meta')for(const x of m.list)if(x.id===id)v=x;}return v;};
 try{
  const a=await client(),b=await client(),c=await client();
+ await until(()=>a.messages.some(m=>m.type==='presence'&&m.online===3));
  // Vị trí đi qua gói nhị phân theo tick
  a.move(5,1,5,1.2);await until(()=>b.seen.get(a.id)?.x===5&&c.seen.get(a.id)?.z===5);
  // Identity is synchronized even with the default look code; late arrivals get it too.
  a.send({type:'profile',look:0,identity:{name:'Nguyen Van An',cls:'12A3',year:'2015-2018'}});
  await until(()=>meta(c,a.id)?.identity?.name==='Nguyen Van An');
  assert.equal(meta(c,a.id).identity.cls,'12A3');
- const late=await client();assert.equal(meta(late,a.id).identity.year,'2015-2018');late.ws.close();
+ const late=await client();assert.equal(meta(late,a.id).identity.year,'2015-2018');
+ await until(()=>a.messages.some(m=>m.type==='presence'&&m.online===4));
+ late.ws.close();
+ await until(()=>a.messages.filter(m=>m.type==='presence').at(-1)?.online===3);
  a.send({type:'profile',look:0,identity:{name:'Updated',cls:'x'.repeat(100),year:'y'.repeat(100)}});
  await until(()=>meta(c,a.id)?.identity?.name==='Updated');
  assert.equal(meta(c,a.id).identity.cls.length,12);assert.equal(meta(c,a.id).identity.year.length,24);
