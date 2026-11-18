@@ -1,6 +1,7 @@
 // Chậu hoa to trang trí: hai bên mỗi cột đèn cạnh cửa chính nhà đa năng (đèn ở z 29.3 và 37.8, sát tường x 54.6).
-import React,{useMemo} from 'react';
+import React,{useMemo,useRef} from 'react';
 import {RigidBody,CylinderCollider} from '@react-three/rapier';
+import {useMergeStatic} from './mergeStatic';
 
 export const HALL_POTS=[[53.9,28.3],[53.9,30.3],[53.9,36.8],[53.9,38.8]];
 const FLOWER_COLORS=['#e8476a','#f7c948','#ff7aa8','#d92f3a','#fff1f4'];
@@ -23,7 +24,8 @@ function Pot({seed}){
 }
 
 export function FlowerPots(){
- return <group>
+ const ref=useRef();useMergeStatic(ref,'deep'); // 4 chậu × ~30 bông → vài khối
+ return <group ref={ref}>
   {HALL_POTS.map(([x,z],i)=><group key={i} position={[x,0,z]}><Pot seed={i}/></group>)}
   <RigidBody type="fixed" colliders={false}>{HALL_POTS.map(([x,z],i)=><CylinderCollider key={i} args={[.45,.5]} position={[x,.45,z]}/>)}</RigidBody>
  </group>;

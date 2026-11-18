@@ -13,6 +13,7 @@ import {Guard} from './ParkingGuard';
 import {localPlayer} from './localPlayer';
 import {currentHour} from './DayCycle';
 import {getRole} from './role';
+import {useMergeStatic} from './mergeStatic';
 
 const SAO_DO=[[6,8],[13,13.5]];               // giờ Sao đỏ đứng cổng
 const LATE=[[8,11.5],[13.5,17]];             // giờ học sinh vào cổng bị tính là đi muộn
@@ -33,7 +34,7 @@ const GATES=[
 ];
 
 function SaoDo({face,girl,book}){
- const root=useRef(),body=useRef(),pen=useRef(),phase=useRef(Math.random()*6);
+ const root=useRef(),body=useRef(),pen=useRef(),phase=useRef(Math.random()*6);useMergeStatic(root,'joint',[girl,book]);
  useFrame(s=>{
   const t=s.clock.elapsedTime+phase.current;
   if(body.current)body.current.position.y=Math.sin(t*1.7)*.012;
@@ -68,7 +69,7 @@ function SaoDo({face,girl,book}){
     <mesh><boxGeometry args={[.26,.025,.2]}/><meshStandardMaterial color="#1d4f9a"/></mesh>
     <mesh position={[0,.015,0]}><boxGeometry args={[.24,.01,.18]}/><meshStandardMaterial color="#f8f6ee"/></mesh>
    </group>
-   <group position={[.17,1.05,.47]}><mesh ref={pen} rotation={[0,0,.5]}><cylinderGeometry args={[.009,.009,.15,6]}/><meshStandardMaterial color="#1b1b1b"/></mesh></group>
+   <group position={[.17,1.05,.47]}><mesh ref={pen} rotation={[0,0,.5]} userData={{noMerge:true}}><cylinderGeometry args={[.009,.009,.15,6]}/><meshStandardMaterial color="#1b1b1b"/></mesh></group>
   </>}
   <mesh castShadow position={[0,1.62,0]}><sphereGeometry args={[.21,18,14]}/><meshStandardMaterial color={skin}/></mesh>
   <mesh position={[0,1.7,-.03]}><sphereGeometry args={[.22,16,10,0,Math.PI*2,0,Math.PI*.55]}/><meshStandardMaterial color={hair}/></mesh>

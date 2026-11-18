@@ -5,9 +5,10 @@
 //  - Học sinh mùa đông: áo khoác đồng phục xanh than phối sọc trắng ngang ngực, cổ đứng, logo trường ở ngực trái; quần kaki.
 //  - Cô giáo: áo dài (chọn màu), quần trắng, tóc dài, tay ôm giáo án.
 //  - Thầy giáo: áo vest (chọn màu), sơ mi trắng, cà vạt, tay xách cặp da; có ria mép vểnh xoăn 2 đầu hoặc không.
-import React from 'react';
+import React,{useRef} from 'react';
 import * as THREE from 'three';
 import {decodeLook,AO_DAI_COLORS,VEST_COLORS} from './profile';
+import {useMergeStatic} from './mergeStatic';
 
 const SKIN='#dcad88',HAIR='#232b32';
 const M=({c,...p})=><meshStandardMaterial color={c} roughness={.75} {...p}/>;
@@ -55,13 +56,14 @@ function outfit({teacher,female,winter,color}){
 }
 
 export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0}){
+ const mergeRef=useRef();useMergeStatic(mergeRef,'joint',[look,eyes,expression,joinedSide]); // mỗi khớp còn vài khối thay vì hàng chục mảnh
  const L=decodeLook(look),o=outfit(L);
  // Nữ: thân thon (eo nhỏ), vai hẹp, tay chân mảnh; tóc dài buộc nơ; môi hồng; học sinh nữ ba lô hồng, mùa hè mặc chân váy xếp ly
  const F=L.female,torsoR=F?.205:.25,R=torsoR+.007,armX=F?.285:.32,armR=F?.068:.085,thighR=F?.088:.105,shinR=F?.078:.09;
  const legC=F&&o.skirt?SKIN:o.pants,bagC=F?(L.winter?'#d9668f':'#f08bb0'):(L.winter?'#2a2a2a':'#58766e');
  const bookSide=joinedSide===-1?1:-1,caseSide=joinedSide===1?-1:1;
  const lx=.11,lz=Math.sqrt(R*R-lx*lx);   // logo áp lên mặt cong của thân
- return <group>
+ return <group ref={mergeRef}>
   {/* thân (nữ: thêm phần eo thắt lại) */}
   <mesh castShadow position={[0,1.15,0]}><capsuleGeometry args={[torsoR,.36,6,12]}/><M c={o.top}/></mesh>
   {F&&<mesh position={[0,1.0,0]}><cylinderGeometry args={[torsoR-.005,torsoR-.035,.14,16]}/><M c={o.skirt?o.skirtC:o.top}/></mesh>}

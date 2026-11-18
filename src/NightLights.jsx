@@ -5,6 +5,7 @@ import {RigidBody,CylinderCollider} from '@react-three/rapier';
 import * as THREE from 'three';
 import {nightFactor} from './DayCycle';
 import {IS_TOUCH} from './device';
+import {useMergeStatic} from './mergeStatic';
 
 // 6 cột đèn theo các điểm khoanh trên bản đồ (toạ độ x, z; mặt sân y ≈ 0)
 export const LAMP_POSTS=[
@@ -70,7 +71,8 @@ export function CourtyardLamps(){
   const near=n>.01?[...LIGHT_SPOTS].sort((a,b)=>((a.x-c.x)**2+(a.z-c.z)**2)-((b.x-c.x)**2+(b.z-c.z)**2)):[];
   lights.current.forEach((l,i)=>{if(!l)return;const s=near[i];if(s){l.position.set(s.x,s.y,s.z);l.distance=s.d;l.intensity=s.k*n;}else l.intensity=0;});
  });
- return <group>
+ const lampsRef=useRef();useMergeStatic(lampsRef,'deep'); // ~290 mảnh → vài khối (cùng hình ảnh)
+ return <group ref={lampsRef}>
   {LAMP_POSTS.map(([x,z,y=0,yaw=0],i)=><group key={i} position={[x,y,z]} rotation={[0,yaw,0]}>
    <mesh castShadow material={res.pole} position={[0,.25,0]}><cylinderGeometry args={[.2,.26,.5,10]}/></mesh>
    <mesh castShadow material={res.gold} position={[0,.52,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.17,.03,6,16]}/></mesh>

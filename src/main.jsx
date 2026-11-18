@@ -76,7 +76,7 @@ function App(){
     return t>.2&&t<1.12&&Math.hypot(position.x-r.door[0]-t*dx,position.z-r.door[2]-t*dz)<2.5;
   });
   return <main>
-    <ErrorBoundary><Canvas shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:true}}>
+    <ErrorBoundary><Canvas shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:true}} onCreated={st=>{if(/[?&]perf(&|=|$)/.test(location.search))window.__three=st;/* ?perf: công cụ đo hiệu năng đọc cảnh 3D */}}>
       <PerformanceMonitor onDecline={()=>setDpr(d=>Math.max(1,d-.25))} onIncline={()=>setDpr(d=>Math.min(MAX_DPR,d+.25))} flipflops={4}/>
       <color attach="background" args={['#c8dce6']}/><fog attach="fog" args={['#c8dce6',170,320]}/>
       <DayCycle/>

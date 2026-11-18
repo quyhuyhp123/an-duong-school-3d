@@ -6,6 +6,7 @@ import {Html} from '@react-three/drei';
 import {RigidBody,CuboidCollider,CapsuleCollider} from '@react-three/rapier';
 import * as THREE from 'three';
 import {localPlayer} from './localPlayer';
+import {useMergeStatic} from './mergeStatic';
 
 const GUARD=[44.65,.17,17.35];       // chỗ bác đứng (three.js): trên sàn nhà xe chính, sát cột góc tây-nam (x 43.9, z 18)
 const TABLE=[43.35,0,18.85];         // bàn trực cạnh bác, sát góc nhà xe chính; quay ngược: ghế ở phía bắc, ngồi nhìn ra đường
@@ -16,7 +17,7 @@ const SHOW_MS=3500;
 const C={uniform:'#5b6b3a',trim:'#3e4a27',skin:'#d9a77f',cap:'#3e4a27',badge:'#f6c344',shoes:'#1b1b1b',belt:'#2a2a2a'};
 
 export function Guard({face}){
- const root=useRef(),body=useRef();
+ const root=useRef(),body=useRef();useMergeStatic(root,'joint');
  useFrame(state=>{ // khẽ nhún như đang thở + quay dần về phía người chơi
   const t=state.clock.elapsedTime;if(body.current)body.current.position.y=Math.sin(t*1.6)*.012;
   if(root.current)root.current.rotation.y+=(((face.current-root.current.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI)*.08;
@@ -44,7 +45,8 @@ export function Guard({face}){
 }
 
 function GuardDesk(){
- return <group>
+ const ref=useRef();useMergeStatic(ref,'deep');
+ return <group ref={ref}>
   {/* bàn trực: mặt gỗ, 4 chân, sổ ghi chép, bút, cốc nước */}
   <mesh castShadow receiveShadow position={[0,.74,0]}><boxGeometry args={[1.1,.05,.6]}/><meshStandardMaterial color="#8a5a33"/></mesh>
   {[[-.5,-.25],[.5,-.25],[-.5,.25],[.5,.25]].map(([x,z],i)=><mesh key={i} position={[x,.36,z]}><boxGeometry args={[.05,.72,.05]}/><meshStandardMaterial color="#5b3a22"/></mesh>)}

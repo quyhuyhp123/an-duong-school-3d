@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import {localPlayer} from './localPlayer';
 import {getRole} from './role';
 import {useNearVisible} from './useNearVisible';
+import {useMergeStatic} from './mergeStatic';
 
 const STEP_MS=4200,BYE_MS=3600;
 const FRONT_Z=58.2,BACK_Z=63,DEPTH=BACK_Z-FRONT_Z,WALL_H=3.2,FLOOR_H=.12,T=.18;   // khách đứng trên vỉa hè trước cửa
@@ -127,8 +128,11 @@ function XoiInside({x}){
  </group>;
 }
 
+// nhà quán + đồ bày: đứng yên → gộp thành vài khối theo chất liệu
+function ShopStatic({children}){const ref=useRef();useMergeStatic(ref,'deep');return <group ref={ref}>{children}</group>;}
+
 function Vendor({look,face}){
- const root=useRef(),body=useRef(),ph=useRef(Math.random()*6);
+ const root=useRef(),body=useRef(),ph=useRef(Math.random()*6);useMergeStatic(root,'joint');
  useFrame(s=>{if(body.current)body.current.position.y=Math.sin(s.clock.elapsedTime*1.5+ph.current)*.01;if(root.current)turn(root.current,face.current);});
  const skin='#dcaa82';
  return <group ref={root}><group ref={body}>
@@ -169,10 +173,12 @@ function Shop({shop}){
   face.current=d<7?Math.atan2(p.x-vendorPos[0],p.z-vendorPos[2]):Math.PI;
  });
  return <group>
+  <ShopStatic>
   <House shop={shop}/>
   {shop.id==='banhmi'&&<BanhMiInside x={shop.x}/>}
   {shop.id==='nuoc'&&<NuocInside x={shop.x}/>}
   {shop.id==='xoi'&&<XoiInside x={shop.x}/>}
+  </ShopStatic>
   <group position={vendorPos}><Vendor look={shop.vendor} face={face}/></group>
   {say&&<Html position={[shop.x,2.55,VENDOR_Z-.2]} center style={{pointerEvents:'none'}}><div className="guard-bubble shop">{say}</div></Html>}
  </group>;

@@ -13,6 +13,7 @@ import {NpcDancer,DANCER_LOOKS} from './TeachersDayStage';
 import {stageDancersVisible} from './stageSchedule';
 import {currentHour} from './DayCycle';
 import {useNearVisible} from './useNearVisible';
+import {useMergeStatic} from './mergeStatic';
 
 const FLOOR=.1,STAGE_TOP=1.2,STAGE_X0=56.5,STAGE_X1=71.5,STAGE_FRONT=39.65,STAGE_BACK=45.15,STAGE_CX=64;
 const AISLE_X=64.5;                       // lối giữa thẳng cửa sau nhà
@@ -38,7 +39,8 @@ export const HALL_SEATS=[
 ];
 
 function TeacherTables(){
- return <group>
+ const mergeRef=useRef();useMergeStatic(mergeRef,'deep');
+ return <group ref={mergeRef}>
   {TEACHER_TABLES.map(cx=><group key={cx} position={[cx,FLOOR,TABLE_Z]}>
    {/* mặt bàn + khăn trải đỏ phủ trước, viền vàng; 4 chân */}
    <mesh castShadow receiveShadow position={[0,TABLE_H,0]}><boxGeometry args={[TABLE_LEN,.05,TABLE_DEPTH]}/><meshStandardMaterial color="#b0122a" roughness={.85}/></mesh>
@@ -154,7 +156,8 @@ function HallDecor(){
   for(const [z,y0] of [[38.8,6.3],[34,6.4],[29,6.4],[24.5,6.2]]){const n=34;for(let i=0;i<n;i++){const t=i/(n-1),x=54.9+t*19.2,y=y0-Math.sin(t*Math.PI)*.55;flags.push({p:[x,y,z],s:[.32,.42,1],c:BALLOON_COLORS[i%BALLOON_COLORS.length]});}}
   return {balloons,flowers,leaves,flags,baskets};
  },[]);
- return <group>
+ const mergeRef=useRef();useMergeStatic(mergeRef,'deep');
+ return <group ref={mergeRef}>
   {/* băng rôn đỏ chữ vàng phía trên màn LED */}
   <mesh position={[STAGE_CX,5.72,44.8]} rotation={[0,Math.PI,0]}><planeGeometry args={[12.5,.98]}/><meshStandardMaterial map={banner} roughness={.7} side={THREE.DoubleSide}/></mesh>
   {/* ngôi sao vàng hai bên băng rôn */}

@@ -11,6 +11,7 @@ import {STAGE_SLOTS,localStage} from './stageSlots';
 import {network} from './multiplayer';
 import {dancePose,applyDance,STAGE_DANCE} from './dances';
 import {beatNow} from './eventAudio';
+import {useMergeStatic} from './mergeStatic';
 
 // Toạ độ sân khấu (three.js): mặt sàn y=0.96, mép trước z=-26.5, phông nền z≈-32.07, trụ xanh x=±8 z=-27.5
 const STAGE_Y=.96,FRONT_Z=-26.5,BACKDROP_Z=-32.0;
@@ -169,7 +170,7 @@ function Bouquet({seed}){
 }
 // pos/rot: đặt ở chỗ khác (VD sân khấu nhà đa năng); linked=false → không bị người chơi thay chỗ
 export function NpcDancer({slot,look,pos,rot=0,linked=true}){
- const root=useRef(),panels=useRef(),pose=useMemo(()=>({}),[]);
+ const root=useRef(),panels=useRef(),pose=useMemo(()=>({}),[]);useMergeStatic(root,'joint',[look]); // bó hoa 9 mảnh, thân… → vài khối mỗi khớp
  const {f,ao}=look,pants=ao==='#ffffff'?'#c8102e':'#ffffff';
  useFrame(()=>{
   const r=root.current;if(!r)return;
