@@ -13,8 +13,9 @@
     "test:infra": "node scripts/test-infra.mjs",
     "test:load": "node scripts/load-test.mjs",
     "test": "node scripts/test-multiplayer.mjs && node scripts/test-infra.mjs && node scripts/test-db-store.mjs",
-    "model:compress": "node scripts/compress-model.mjs",
-    "test:db": "node scripts/test-db-store.mjs"
+    "model:compress": "node scripts/compress-model.mjs && node scripts/check-compressed-model.mjs 300",
+    "test:db": "node scripts/test-db-store.mjs",
+    "model:check": "node scripts/check-compressed-model.mjs 300"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.0",

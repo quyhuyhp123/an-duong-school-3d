@@ -53,6 +53,15 @@ for(const place of data.places.filter(p=>data.stairs.some(s=>s.building===p.id))
     assert(body.translation().y<(place.id.startsWith('D')?1.9:1.3),'Must return to ground level');
   });
 }
+// tay vịn cầu thang có khung va chạm: đứng giữa đợt thang bước ngang vào khe giữa 2 đợt thang → bị chặn, không lọt xuống
+test('Stair handrails cannot be walked through',()=>{
+  for(const r of data.stairs){
+    const [a,b,c]=r.path,mid=[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],side=[c[0]-b[0],0,c[2]-b[2]],L=Math.hypot(side[0],side[2]);
+    const gap=[mid[0]+side[0]/L*1.65,mid[1],mid[2]+side[2]/L*1.65];   // tâm khe giữa 2 đợt thang
+    set(mid);const y0=body.translation().y;let blocked=false;try{go(gap,r.building+' '+r.floor+' into stair gap')}catch{blocked=true}
+    assert(blocked,r.building+' tầng '+r.floor+': tay vịn phải chặn');assert(body.translation().y>y0-.5,r.building+' tầng '+r.floor+': không được rơi xuống khe');
+  }
+});
 // tầng trên cùng: giếng thang phía đợt đi lên có lan can chắn → đi từ đầu cầu thang về phía giếng thang không bị rơi
 test('Top-floor stairwells are guarded by a railing',()=>{
   const buildings=[...new Set(data.stairs.map(s=>s.building))];

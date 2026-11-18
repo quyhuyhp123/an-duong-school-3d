@@ -30,6 +30,7 @@ import {PhotoRoom} from './PhotoRoom';
 import {StreetLights} from './StreetLights';
 import {GateGreeters} from './GateGreeters';
 import {FlowerPots} from './FlowerPots';
+import {GateBoard} from './GateBoard';
 import {getRole} from './role';
 import {HallStage,HALL_SEATS} from './HallStage';
 import {Shops,SHOP_SEATS} from './Shops';
@@ -38,7 +39,7 @@ import {AvatarBody} from './Avatar';
 import {touch} from './device';
 import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='meshopt-76';
+export const MODEL_VERSION='glass-rails-79';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -258,9 +259,11 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
  <RigidBody ref={body} type="kinematicPosition" colliders={false} position={data.spawn} enabledRotations={[false,false,false]}><CapsuleCollider ref={capsule} args={[CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS]}/>{localPair&&<><CoupleBody player={{...localPair,look:myLook}}/>{destination&&!overview&&<Nameplate profile={myProfile} height={.97}/>}</>}<group ref={avatar} position={[0,-.83,0]}>{rideUi&&<RidingBike color={rideUi.color}/>}<AvatarBody look={myLook}/>{!localPair&&destination&&!overview&&<Nameplate profile={myProfile}/>}
  </group></RigidBody></>;
 }
-export const World=memo(function World(props){const [boardEditing,setBoardEditing]=useState(false);const json=useLoader(THREE.FileLoader,`${import.meta.env.BASE_URL}models/campus-data.json?v=${MODEL_VERSION}`),data=useMemo(()=>JSON.parse(json),[json]);const {scene}=useGLTF(`${import.meta.env.BASE_URL}models/an-duong-school.glb?v=${MODEL_VERSION}`);useEffect(()=>{scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});props.onData(data)},[scene,data]);
+export const World=memo(function World(props){const [boardEditing,setBoardEditing]=useState(false);const json=useLoader(THREE.FileLoader,`${import.meta.env.BASE_URL}models/campus-data.json?v=${MODEL_VERSION}`),data=useMemo(()=>JSON.parse(json),[json]);const {scene}=useGLTF(`${import.meta.env.BASE_URL}models/an-duong-school.glb?v=${MODEL_VERSION}`);useEffect(()=>{scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;
+  // kính trong suốt (3 dãy chính): không ghi chiều sâu để các ô kính phía sau vẫn thấy được; không đổ bóng
+  if(o.material?.name==='glass'){o.material.transparent=true;o.material.depthWrite=false;o.material.side=THREE.DoubleSide;o.castShadow=false;o.renderOrder=1;}}});props.onData(data)},[scene,data]);
  useLitClassrooms(scene,data.rooms); // ban đêm: ngẫu nhiên khoảng một nửa số lớp bật đèn
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
  const classroom=useMemo(()=>classroomLayout(data.rooms??[]),[data]);
  const playerData=useMemo(()=>({...data,seats:[...(data.seats??[]),...classroom.seats,...HALL_SEATS,...SHOP_SEATS,...(props.event==='campfire'?CAMPFIRE_SEATS:[])]}),[data,props.event,classroom]);
- return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><HallStage event={props.event}/><Shops/><PhotoRoom/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});
+ return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}>{data.colliders.map((c,i)=><CuboidCollider key={i} args={c.halfExtents} position={c.position} quaternion={c.quaternion}/>)}</RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><PhotoRoom/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});

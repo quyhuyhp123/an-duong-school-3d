@@ -101,36 +101,44 @@ export function CourtyardLamps(){
 }
 
 // ---------- Lớp học bật đèn ----------
-// Toàn bộ kính cửa sổ trong file GLB là MỘT khối ("Campus_window"). Khi tải, tách các tam giác theo phòng học gần nhất
-// (campus-data.json → rooms) rồi chuyển kính của các phòng được chọn sang vật liệu phát sáng vàng ấm.
+// Kính cửa sổ trong file GLB gộp theo vật liệu: "glass" (kính trong suốt — 3 dãy chính A, B, C) và "window" (nhà gần cổng…).
+// Khi tải, tách các tam giác theo phòng học gần nhất (campus-data.json → rooms) rồi chuyển kính của các phòng được chọn
+// sang vật liệu phát sáng vàng ấm. Kính trong suốt: ban ngày ô được chọn vẫn trong như các ô khác, tối mới sáng & đục dần.
 // Chọn phòng ngẫu nhiên theo NGÀY: mọi người thấy cùng các lớp sáng đèn, sang ngày hôm sau sẽ khác.
 function seededRandom(seed){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
 export function useLitClassrooms(scene,rooms,share=.5){
- const mat=useMemo(()=>new THREE.MeshStandardMaterial({color:'#3b4a48',emissive:'#ffc874',emissiveIntensity:0,roughness:.25}),[]);
+ const mats=useMemo(()=>({
+  window:new THREE.MeshStandardMaterial({color:'#3b4a48',emissive:'#ffc874',emissiveIntensity:0,roughness:.25}),
+  glass:new THREE.MeshStandardMaterial({color:'#b8dbe6',emissive:'#ffc874',emissiveIntensity:0,roughness:.05,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}),
+ }),[]);
  const last=useRef(-1);
  useEffect(()=>{
   if(!scene||!rooms?.length)return;
-  let win=null;scene.traverse(o=>{if(!win&&o.isMesh&&(/window/i.test(o.name)||/window/i.test(o.material?.name??'')))win=o;});
-  if(!win||win.userData.litSplit)return;
-  win.updateWorldMatrix(true,false);
-  const g=win.geometry,pos=g.attributes.position,idx=g.index?Array.from(g.index.array):Array.from({length:pos.count},(_,i)=>i);
   const d=new Date(),rand=seededRandom(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate());
   const lit=new Set(rooms.filter(()=>rand()<share).map(r=>r.id));
-  const v=new THREE.Vector3(),c=new THREE.Vector3(),keep=[],glow=[];
-  for(let t=0;t<idx.length;t+=3){
-   c.set(0,0,0);for(let k=0;k<3;k++)c.add(v.fromBufferAttribute(pos,idx[t+k]).applyMatrix4(win.matrixWorld));c.multiplyScalar(1/3);
-   // phòng cùng tầng (cửa sổ cao ~1,9 m trên sàn) gần nhất theo mặt bằng, trong phạm vi 12 m
-   let best=null,bd=144;
-   for(const r of rooms){const dy=c.y-(r.inside[1]+1.9);if(Math.abs(dy)>1.5)continue;const dd=(c.x-r.inside[0])**2+(c.z-r.inside[2])**2;if(dd<bd){bd=dd;best=r;}}
-   (best&&lit.has(best.id)?glow:keep).push(idx[t],idx[t+1],idx[t+2]);
+  const targets=[];scene.traverse(o=>{if(!o.isMesh||o.userData.litSplit)return;const n=o.material?.name??'';if(/^glass$/i.test(n))targets.push([o,'glass']);else if(/window/i.test(o.name)||/window/i.test(n))targets.push([o,'window']);});
+  let total=0;
+  for(const [win,kind] of targets){
+   win.updateWorldMatrix(true,false);
+   const g=win.geometry,pos=g.attributes.position,idx=g.index?Array.from(g.index.array):Array.from({length:pos.count},(_,i)=>i);
+   const v=new THREE.Vector3(),c=new THREE.Vector3(),keep=[],glow=[];
+   for(let t=0;t<idx.length;t+=3){
+    c.set(0,0,0);for(let k=0;k<3;k++)c.add(v.fromBufferAttribute(pos,idx[t+k]).applyMatrix4(win.matrixWorld));c.multiplyScalar(1/3);
+    // phòng cùng tầng (cửa sổ cao ~1,9 m trên sàn) gần nhất theo mặt bằng, trong phạm vi 12 m
+    let best=null,bd=144;
+    for(const r of rooms){const dy=c.y-(r.inside[1]+1.9);if(Math.abs(dy)>1.5)continue;const dd=(c.x-r.inside[0])**2+(c.z-r.inside[2])**2;if(dd<bd){bd=dd;best=r;}}
+    (best&&lit.has(best.id)?glow:keep).push(idx[t],idx[t+1],idx[t+2]);
+   }
+   win.userData.litSplit=true;
+   if(!glow.length)continue;
+   g.setIndex(keep);
+   const litGeo=new THREE.BufferGeometry();for(const [k,a] of Object.entries(g.attributes))litGeo.setAttribute(k,a);litGeo.setIndex(glow);
+   const litMesh=new THREE.Mesh(litGeo,mats[kind]);litMesh.name='Lit classroom windows';litMesh.renderOrder=win.renderOrder;
+   litMesh.position.copy(win.position);litMesh.quaternion.copy(win.quaternion);litMesh.scale.copy(win.scale);
+   win.parent.add(litMesh);total+=glow.length/3;
   }
-  if(!glow.length)return;
-  g.setIndex(keep);
-  const litGeo=new THREE.BufferGeometry();for(const [k,a] of Object.entries(g.attributes))litGeo.setAttribute(k,a);litGeo.setIndex(glow);
-  const litMesh=new THREE.Mesh(litGeo,mat);litMesh.name='Lit classroom windows';
-  litMesh.position.copy(win.position);litMesh.quaternion.copy(win.quaternion);litMesh.scale.copy(win.scale);
-  win.parent.add(litMesh);win.userData.litSplit=true;
-  console.info(`[đèn lớp] ${lit.size}/${rooms.length} phòng bật đèn tối nay, ${glow.length/3} tam giác kính sáng`);
+  if(total)console.info(`[đèn lớp] ${lit.size}/${rooms.length} phòng bật đèn tối nay, ${total} tam giác kính sáng`);
  },[scene,rooms,share]);
- useFrame(state=>{if(state.clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=state.clock.elapsedTime;mat.emissiveIntensity=1.9*nightFactor();});
+ useFrame(state=>{if(state.clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=state.clock.elapsedTime;
+  const n=nightFactor();mats.window.emissiveIntensity=1.9*n;mats.glass.emissiveIntensity=1.9*n;mats.glass.opacity=.28+.62*n;});
 }

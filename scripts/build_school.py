@@ -12,6 +12,13 @@ def mat(name,color,metal=0):
     p.inputs['Base Color'].default_value=(*color,1); p.inputs['Roughness'].default_value=.77; p.inputs['Metallic'].default_value=metal
     M[name]=m; return m
 for n,c in {'wall':(.79,.61,.29),'cream':(.94,.85,.59),'trim':(.96,.92,.77),'roof':(.48,.15,.10),'window':(.075,.17,.19),'wood':(.26,.13,.065),'blue':(.035,.32,.66),'brick':(.52,.24,.17),'tile':(.57,.40,.33),'grout':(.67,.54,.43),'grass':(.26,.38,.10),'leaf':(.13,.29,.075),'leaflight':(.25,.42,.10),'trunk':(.36,.28,.17),'metal':(.31,.37,.35),'red':(.73,.035,.025),'gold':(.98,.73,.12),'black':(.045,.065,.055),'stone':(.66,.64,.55),'water':(.12,.49,.68),'rock':(.30,.32,.28),'flower':(.78,.035,.23),'court':(.47,.52,.49)}.items(): mat(n,c)
+# kính cửa sổ 3 dãy chính: xanh nhạt, trong suốt (glTF alphaMode BLEND), bóng
+mat('glass',(.72,.86,.92));_g=M['glass'];_gp=next(n for n in _g.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
+_gp.inputs['Alpha'].default_value=.28;_gp.inputs['Roughness'].default_value=.05
+for _attr,_val in [('surface_render_method','BLENDED'),('blend_method','BLEND')]:
+    try:setattr(_g,_attr,_val)
+    except Exception:pass
+_g.use_backface_culling=False
 def cube(n,loc,size,m):
     bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object; o.name=n; o.dimensions=size
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True); o.data.materials.append(M[m]); return o
@@ -488,11 +495,11 @@ for ob in set(bpy.data.objects)-gate_before:
     if any(t in ob.name for t in ['roof','eave','lintel','festival']):ob.location.z+=.35
 # School information board in the marked patch, beside the entry axis.
 notice_before=set(bpy.data.objects)
-for x in [3.7,8.3]:cube('School information board post',(x,-42,1.65),(.13,.16,3.3),'metal',True)
-cube('School information board frame',(6,-42,2.15),(5,.22,2.15),'cream',True)
-cube('School information board face',(6,-42.14,2.15),(4.7,.06,1.9),'blue')
-for wording,z,size in [('BẢNG THÔNG TIN',2.78,.31),('TRƯỜNG THPT AN DƯƠNG',2.35,.25),('THÔNG BÁO · HOẠT ĐỘNG NHÀ TRƯỜNG',1.92,.17),('HỌC TẬP · VĂN HÓA · THỂ THAO',1.52,.19)]:text('School notice board lettering',wording,(6,-42.19,z),size,'trim')
-cube('School notice board canopy',(6,-42,3.37),(5.5,.9,.14),'cream')
+# Bảng tin: mặt bảng tỉ lệ 16:9 (4.7 × 2.64 m) để dán trọn ảnh bảng phấn "Tri ân" (src/GateBoard.jsx, public/boards/), không cắt mất chữ.
+for x in [3.7,8.3]:cube('School information board post',(x,-42,2.05),(.13,.16,4.1),'metal',True)
+cube('School information board frame',(6,-42,2.35),(5,.22,2.94),'cream',True)
+cube('School information board face',(6,-42.14,2.35),(4.7,.06,2.64),'black')   # nền tối sau ảnh
+cube('School notice board canopy',(6,-42,3.97),(5.5,.9,.14),'cream')
 for ob in set(bpy.data.objects)-notice_before:
     px=ob.location.x-6;py=ob.location.y+42
     ob.location.x=5.75+py;ob.location.y=-37-px;ob.rotation_euler.z-=math.pi/2
@@ -610,8 +617,7 @@ cube('Gate house raised plinth',(-23,-41,.25),(26,11,.5),'stone',True)
 # Four low steps enter the raised ground floor from the right face.
 for j in range(4):cube('Gate house ground entry step',(-7.5-j*.65,-36,.075+j*.075),(1.2,2,.15+j*.15),'stone',True)
 cube('Gate house ground entrance landing',(-10.25,-36,.6),(1.4,2,.2),'trim',True)
-for y in [-37,-35]:cube('Gate house ground door jamb',(-10.05,y,1.95),(.12,.12,2.7),'wood')
-cube('Gate house ground door head',(-10.05,-36,3.3),(.12,2.1,.12),'wood')
+# (bỏ khung cửa gỗ đứng lẻ ở lối lên tầng trệt nhà gần cổng — tường cũ đã đổi, khung còn trơ giữa sân)
 
 # Lane behind the right classroom wing, opening east through the secondary gate.
 cube('East access lane',(44,0,.025),(7,88,.1),'stone')
@@ -1026,7 +1032,7 @@ for pot in list(bpy.data.objects):
         cube('Planter support collider',tuple(pot.location),(w,d,height),'grass',True)
 export_campus_data()
 # khung va chạm của lan can nhà xe chỉ dùng cho dữ liệu va chạm, không đưa vào mô hình hiển thị
-for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
+for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or 'Stair rail collider' in o.name or o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
 
 # Merge static meshes by material for a small GLB and fewer draw calls on the web.
 fonts=[o for o in bpy.context.scene.objects if o.type=='FONT']
