@@ -614,9 +614,7 @@ for place in places:
         for key in ['position','stairs','roof']:place[key][1]+=.6
         place['position']=[-21.35,1.58,36]
 cube('Gate house raised plinth',(-23,-41,.25),(26,11,.5),'stone',True)
-# Four low steps enter the raised ground floor from the right face.
-for j in range(4):cube('Gate house ground entry step',(-7.5-j*.65,-36,.075+j*.075),(1.2,2,.15+j*.15),'stone',True)
-cube('Gate house ground entrance landing',(-10.25,-36,.6),(1.4,2,.2),'trim',True)
+# (bỏ 4 bậc đá + chiếu nhỏ lên nền nhà gần cổng theo yêu cầu — nền cao 0,5 m, vẫn nhảy lên được)
 # (bỏ khung cửa gỗ đứng lẻ ở lối lên tầng trệt nhà gần cổng — tường cũ đã đổi, khung còn trơ giữa sân)
 
 # Lane behind the right classroom wing, opening east through the secondary gate.
