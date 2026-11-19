@@ -5,17 +5,18 @@
 // Chú thích: tên file ("Góc phố Việt trong nắng chiều-1.png" → "Góc phố Việt trong nắng chiều"); "Image (5).jpg" → "Kỷ niệm 6".
 import React,{useEffect,useRef,useState} from 'react';
 import song from '../music/GiacMoThanTien.mp3?url';
-import {isMuted,onMuteChange} from './eventAudio';
+import {isMuted,onMuteChange,setAlbumAudio} from './eventAudio';
 import manifest from './albumManifest.json';   // bản nén WebP do `npm run album` tạo (scripts/optimize-album.mjs)
 
 // Nhạc nền album: phát khi mở hồi ức (nhấn E = thao tác người dùng nên trình duyệt cho phép phát), tắt khi đóng.
 // Tôn trọng nút tắt tiếng chung của trang.
 function useAlbumMusic(){
  useEffect(()=>{
+  setAlbumAudio(true);
   const a=new Audio(song);a.loop=true;a.volume=.6;a.muted=isMuted();
   a.play().catch(()=>{});
   const off=onMuteChange(v=>{a.muted=v;});
-  return()=>{off();a.pause();a.removeAttribute('src');a.load();};
+  return()=>{off();a.pause();a.removeAttribute('src');a.load();setAlbumAudio(false);};
  },[]);
 }
 

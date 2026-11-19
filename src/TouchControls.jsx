@@ -31,7 +31,7 @@ export function TouchControls({near}){
  return <div className="tc-layer">
   <Joystick/>
   <div className="tc-buttons">
-   {near&&<HoldButton code="KeyE" className="tc-small" label="Xem ký ức sân trường">📷</HoldButton>}
+   {near&&<HoldButton code="KeyE" className="tc-small" label="Xem ký ức sân trường">E</HoldButton>}
    <button className={'tc-btn tc-small'+(run?' on':'')} aria-pressed={run} aria-label="Chạy" onClick={()=>{touch.run=!run;setRun(!run);}}>🏃</button>
    <HoldButton code="Space" className="tc-jump" label="Nhảy">⤒</HoldButton>
    <HoldButton code="KeyF" className="tc-act" label="Tương tác (F)">F</HoldButton>

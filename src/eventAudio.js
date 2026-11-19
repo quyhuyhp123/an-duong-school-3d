@@ -7,6 +7,7 @@ export const BPM=124;
 const SPB=60/BPM; // giây mỗi nhịp
 let ctx=null,master=null,djBus=null,fireBus=null,noise=null,timer=null,nextStep=0,step=0,startTime=0;
 let wanted=null,listener=[0,0,0],muted=(()=>{try{return localStorage.getItem('school-muted')==='1'}catch{return false}})();
+let albumOpen=false;
 const listeners=new Set();
 
 function ensure(){
@@ -19,7 +20,11 @@ function ensure(){
  return ctx;
 }
 // Mở khoá âm thanh ở lần tương tác đầu
-function unlock(){const c=ensure();if(c?.state==='suspended')c.resume();apply();}
+function unlock(){
+ const c=ensure();
+ if(c&&c.state!=='running')c.resume().then(apply).catch(()=>{});
+ apply();
+}
 if(typeof window!=='undefined'){for(const ev of ['pointerdown','keydown','touchstart'])window.addEventListener(ev,unlock,{passive:true});}
 
 function noiseSrc(t,dur,type,freq,q,gain){
@@ -63,8 +68,9 @@ function stopFireBed(){if(fireBed){try{fireBed.stop()}catch{}fireBed=null;}}
 
 function tickScheduler(){
  if(!ctx||!wanted)return;
+ if(nextStep<ctx.currentTime-.12)nextStep=ctx.currentTime+.03;
  while(nextStep<ctx.currentTime+.12){
-  if(wanted.type==='dj'){if(!useMusic())scheduleDJ(nextStep,step);} // có file nhạc của admin → không phát nhạc tự tạo (đồng hồ nhịp vẫn chạy cho đèn)
+  if(wanted.type==='dj'){if(!albumOpen&&!useMusic())scheduleDJ(nextStep,step);} // có file nhạc của admin → không phát nhạc tự tạo (đồng hồ nhịp vẫn chạy cho đèn)
   else scheduleFire(nextStep);
   nextStep+=SPB/4;step++;
  }
@@ -83,16 +89,18 @@ function updateVolume(){
  // âm lượng DJ = độ gần sân khấu × âm lượng admin đặt (áp dụng cho cả file nhạc lẫn nhạc tự tạo)
  const dj=wanted?.type==='dj'?Math.pow(Math.max(0,1-d/70),1.6)*(useMusic()?1:.6)*music.volume:0;
  const fire=wanted?.type==='campfire'?Math.pow(Math.max(0,1-d/20),1.4)*.8:0;
- djBus.gain.setTargetAtTime(dj,now,.3);fireBus.gain.setTargetAtTime(fire,now,.3);
+ if(albumOpen){djBus.gain.cancelScheduledValues(now);djBus.gain.setValueAtTime(0,now);}
+ else djBus.gain.setTargetAtTime(dj,now,.3);
+ fireBus.gain.setTargetAtTime(fire,now,.3);
 }
 
 // ---------- File nhạc do admin chọn ----------
 // Phát bằng thẻ <audio> (tải dần, không nạp cả bài vào RAM) nối vào cùng bộ chỉnh âm lượng theo khoảng cách.
-let music={url:null,volume:.8,startedAt:0},musicEl=null,musicSrc=null;
-const useMusic=()=>!!music.url&&wanted?.type==='dj';
+let music={url:null,volume:.8,startedAt:0},musicEl=null,musicSrc=null,mediaFailed=false;
+const useMusic=()=>!!music.url&&!mediaFailed&&wanted?.type==='dj';
 function syncMusic(){
  if(!ctx)return;
- if(!useMusic()){if(musicEl&&!musicEl.paused)musicEl.pause();return;}
+ if(albumOpen||!useMusic()){if(musicEl&&!musicEl.paused)musicEl.pause();return;}
  if(!musicEl||musicEl.dataset.url!==music.url){
   if(musicEl){musicEl.pause();musicSrc?.disconnect();}
   musicEl=new Audio();musicEl.crossOrigin='anonymous';musicEl.loop=true;musicEl.preload='auto';musicEl.dataset.url=music.url;musicEl.src=serverUrl(music.url);
@@ -101,17 +109,35 @@ function syncMusic(){
   analyser??=Object.assign(ctx.createAnalyser(),{fftSize:2048,smoothingTimeConstant:.35});
   musicSrc.connect(analyser);analyser.connect(djBus);resetBeatTracker();
   // Mọi người nghe gần cùng một đoạn: tua tới (thời gian từ lúc admin chọn bài) mod độ dài bài
-  musicEl.addEventListener('loadedmetadata',()=>{const d=musicEl.duration;if(Number.isFinite(d)&&d>0&&music.startedAt)musicEl.currentTime=((Date.now()-music.startedAt)/1000)%d;},{once:true});
+  const track=musicEl;
+  track.addEventListener('loadedmetadata',()=>{if(track===musicEl)seekMusic(music.startedAt);},{once:true});
+  track.addEventListener('error',()=>{if(track===musicEl){mediaFailed=true;updateVolume();}});
  }
- if(musicEl.paused&&ctx.state==='running')musicEl.play().catch(()=>{});
+ if(musicEl.paused&&ctx.state==='running'){
+  const track=musicEl;
+  track.play().catch(error=>{if(track===musicEl&&!albumOpen&&error.name!=='AbortError'){mediaFailed=true;updateVolume();}});
+ }
  // Đo nhịp bằng bộ hẹn giờ riêng (~100 lần/giây), không phụ thuộc tốc độ vẽ khung hình
  // → máy yếu chỉ vẽ 20 FPS vẫn bắt được các cú kick ngắn ~0,1 s
  analyseTimer??=setInterval(()=>{if(!useMusic()){clearInterval(analyseTimer);analyseTimer=null;return;}analyse();},10);
 }
+function seekMusic(startedAt){
+ const duration=musicEl?.duration;
+ if(startedAt&&Number.isFinite(duration)&&duration>0)musicEl.currentTime=(Math.max(0,Date.now()-startedAt)/1000)%duration;
+}
+export function setAlbumAudio(open){
+ albumOpen=open;
+ if(!open&&musicEl?.dataset.url===music.url)seekMusic(music.startedAt);
+ syncMusic();updateVolume();
+}
 export function setMusic(cfg){
  const next={url:cfg?.url??null,volume:Number.isFinite(cfg?.volume)?cfg.volume:.8,startedAt:cfg?.startedAt??0};
  const changed=next.url!==music.url||next.startedAt!==music.startedAt;music=next;
- if(changed&&musicEl&&musicEl.dataset.url===next.url&&next.startedAt&&Number.isFinite(musicEl.duration))musicEl.currentTime=((Date.now()-next.startedAt)/1000)%musicEl.duration;
+ if(changed){
+  if(mediaFailed&&musicEl){musicEl.pause();musicSrc?.disconnect();musicEl=null;musicSrc=null;}
+  mediaFailed=false;
+  if(musicEl?.dataset.url===next.url)seekMusic(next.startedAt);
+ }
  syncMusic();updateVolume();
 }
 

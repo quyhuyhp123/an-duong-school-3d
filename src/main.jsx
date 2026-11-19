@@ -79,7 +79,7 @@ function App(){
   useEffect(()=>{const open=e=>{setBasket(e.detail==='flap'?'flap':'shoot');setMap(false);setAlbum(false);};window.addEventListener('open-basketball',open);return()=>window.removeEventListener('open-basketball',open);},[]);
   const profile=useProfile(),[onboard,setOnboard]=useState('welcome'); // màn hình chào / chọn nhân vật (null = đang chơi)
   const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(()=>({position:entryFor(getProfile()?.transport==='bike'?'bike':'walk'),yaw:0,time:0})); // ngay từ đầu nhân vật đứng ở cổng (sau màn hình chào camera đã khoá sẵn sau lưng)
-  useEffect(()=>{const fn=e=>{if(e.repeat||greet||onboard||basket||lab||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map,greet,lab]);
+  useEffect(()=>{const fn=e=>{if(e.repeat||greet||onboard||prep||basket||lab||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map,greet,onboard,prep,basket,lab]);
   // Sự kiện ban đêm do trang quản lý chọn (DJ / lửa trại) + phòng trò chuyện
   const live=useLive();
   useEffect(()=>{setEventSound(live.event,live.event==='dj'?[0,0,-28]:live.event==='campfire'?CAMPFIRE_POS:null)},[live.event]);
@@ -124,8 +124,8 @@ function App(){
     </div>
     {/* góc phải trên: nhân vật & bản đồ (điện thoại: chỉ biểu tượng) */}
     <nav className="top-nav"><OnlineCount/><button onClick={()=>setOnboard('creator')} title={describeProfile(profile)} aria-label="Nhân vật"><span className="ico" aria-hidden="true">👤</span><span className="lbl">Nhân vật</span></button><button onClick={()=>{setMap(true);setAlbum(false)}} aria-label="Bản đồ"><span className="ico" aria-hidden="true">🗺️</span><span className="lbl">Bản đồ</span><kbd>M</kbd></button></nav>
-    {IS_TOUCH&&!onboard&&!overview&&!basket&&!lab&&!map&&!album&&!greet&&<TouchControls near={near}/>}
-    {!overview&&near&&!album&&!map&&<div className="prompt"><kbd>E</kbd> Xem ký ức sân trường</div>}
+    {IS_TOUCH&&!onboard&&!prep&&!overview&&!basket&&!lab&&!map&&!album&&!greet&&<TouchControls near={near}/>}
+    {!overview&&near&&!album&&!map&&!onboard&&!prep&&!greet&&!basket&&!lab&&<div className="prompt memory-prompt"><kbd>E</kbd> Mở kỷ niệm sân trường</div>}
     {live.chatOpen&&<ChatPanel messages={live.chat} title={live.event?`Trò chuyện · ${EVENT_INFO[live.event].title}`:'Trò chuyện chung'}/>}
     {greet&&<GreetingModal onClose={()=>setGreet(false)}/>}
     {map&&<div className="modal" role="dialog" aria-modal="true" aria-label="Bản đồ trường"><section className="map-panel"><button className="close" onClick={()=>setMap(false)} aria-label="Đóng bản đồ">×</button><small>KHUÔN VIÊN THEO ẢNH THAM CHIẾU</small><h2>Từ cổng trường qua hai hàng cau.</h2><div className="map-grid"><CampusMap position={position}/><div className="place-list"><p>Chọn điểm bắt đầu khám phá. Cầu thang đi bộ nối các tầng.</p>{data?.places.map(p=><button key={p.id} onClick={()=>visit(p.position)}>{p.label}<span>→</span></button>)}<button onClick={()=>visit(data?.spawn??[8,1,17])}>Về sân trường <span>→</span></button></div></div><p>Các vị trí và kích thước đang được ước lượng từ ảnh. Bàn ghế, phòng và cầu thang là bố trí cơ bản để khám phá, chưa phải bản đo hiện trạng.</p></section></div>}

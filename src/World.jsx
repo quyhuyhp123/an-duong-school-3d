@@ -261,7 +261,8 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
   const swingDistance=Math.min(Math.hypot(p.x-16.5,p.z-11.6),Math.hypot(p.x-23.5,p.z-11.6));
   const canSit=swingDistance<3.5&&p.y<2.3;
   if(canSit!==swingNearbyRef.current){swingNearbyRef.current=canSit;setSwingNearby(canSit);}
-  const n=Math.hypot(p.x,p.z+24)<10&&p.y<3;if(n!==near.current){near.current=n;onNear(n)}
+  const inCampus=p.z>=-51&&p.z<48.15&&p.x>=(p.z<=-.55?-53:-36.25)&&p.x<=(p.z<=14?54.8:75);
+  if(inCampus!==near.current){near.current=inCampus;onNear(inCampus);}
   // ô xe gần nhất: đang đạp → tìm ô trống để đỗ; đi bộ → tìm ô có xe để lấy (5 lần/giây)
   if(state.clock.elapsedTime-lastBikeCheck.current>.2){lastBikeCheck.current=state.clock.elapsedTime;
    const bay=mode.current==='stand'&&performSlot.current==null?nearestBay(p.x,p.y,p.z,!riding.current):null;

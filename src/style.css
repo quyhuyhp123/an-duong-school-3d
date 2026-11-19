@@ -230,8 +230,10 @@ header .seal{display:grid}
  .seat-hint{font-size:12px!important;padding:6px 10px!important}
  .guard-bubble{font-size:12px;padding:6px 10px}.guard-bubble.shop{width:210px}
  .prompt{bottom:170px;padding:9px 14px;font-size:12px}
+ .prompt.memory-prompt{bottom:222px}
  .pose-bar{top:auto;bottom:168px;transform:translateX(-50%) scale(.9)}
 }
+.memory-prompt{bottom:185px;pointer-events:none;width:max-content;max-width:calc(100vw - 24px)}
 
 @media (max-width:760px),(pointer:coarse){.top-nav button{width:44px;height:44px;padding:0;justify-content:center;min-width:0}}
 .top-nav span{margin-left:0}
