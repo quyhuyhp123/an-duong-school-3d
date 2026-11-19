@@ -15,7 +15,7 @@ function Welcome({onNext,onContinue}){
   <small className="ob-eyebrow">CHÀO MỪNG VỀ TRƯỜNG</small>
   <h1 id="ob-title">THPT An Dương</h1>
   <p className="ob-sub">Ký ức sân trường · Hải Phòng</p>
-  <p>Dạo quanh khuôn viên Trường THPT An Dương được dựng lại bằng 3D: sân trường, ba dãy lớp học, nhà đa năng, nhà xe, vườn STEAM — và gặp lại bạn bè, thầy cô đang online.</p>
+  <p>Dạo quanh khuôn viên Trường THPT An Dương được dựng lại bằng 3D: sân trường, ba dãy lớp học, nhà đa năng, nhà xe, vườn STEM — và gặp lại bạn bè, thầy cô đang online.</p>
   <div className="ob-features">
    <p><b>🌸 20/11:</b> mở thiệp chúc mừng ở góc trái, gửi lời chúc tới thầy cô và xem sổ lời chúc của mọi người.</p>
    <p><b>💃 Sân khấu:</b> bước lên sân khấu ngoài sân hoặc trong nhà đa năng, nhấn <Key>F</Key> để thay chỗ một vũ công áo dài (mỗi nơi 10 chỗ).</p>

@@ -982,7 +982,7 @@ for y in [-22,-31,-40]:
 
 
 # ===================== Dải mở rộng phía tây (dọc mặt tây dãy B, three.js x -53 → -42, z -51 → -0.55) =====================
-# Bắc → nam: vườn STEAM (nhà kính) · nhà vệ sinh (đã chuyển sang, xem vòng lặp nhà vệ sinh) · cây nhỏ · nhà kho.
+# Bắc → nam: vườn STEM (nhà kính) · nhà vệ sinh (đã chuyển sang, xem vòng lặp nhà vệ sinh) · cây nhỏ · nhà kho.
 # Lối đi lát gạch dọc phía đông (sát dãy B) và toàn bộ phần còn lại; góc tây bắc (chỗ nhà vệ sinh cũ) cũng lát gạch.
 cube('West annex paving',(-47.5,25.78,-.08),(11,50.45,.18),'tile',True)
 cube('Northwest corner paving',(-38.5,42.55,-.08),(9,16.9,.18),'tile',True)
@@ -995,7 +995,7 @@ def small_tree(name,x,y):
 small_tree('Small tree between washroom and store',-49.3,20.5)
 small_tree('Small tree northwest corner',-38.5,46.2)
 
-# ---------- Vườn STEAM: nhà kính khung trắng, kính trong; luống trồng, bàn nghiên cứu, kệ thuỷ canh; hồng leo bên cửa ----------
+# ---------- Vườn STEM: nhà kính khung trắng, kính trong; luống trồng, bàn nghiên cứu, kệ thuỷ canh; hồng leo bên cửa ----------
 g=bpy.data.materials.new('glass');g.use_nodes=True;pg=next(n for n in g.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
 pg.inputs['Base Color'].default_value=(.78,.92,.96,1);pg.inputs['Alpha'].default_value=.26;pg.inputs['Roughness'].default_value=.05
 try:g.surface_render_method='BLENDED'
@@ -1060,7 +1060,7 @@ for y in [GY1-2.1,GY1-.3]:cube('Hydroponic frame',(GX0+.45,y,1.0),(.05,.05,2.0),
 cyl('Greenhouse water tank',(GX0+.5,GY0+.6,.5),.38,1.0,'blue',16)
 # biển tên trên mặt đông (quay ra lối đi)
 cube('Greenhouse sign board',(GX1+.06,DOOR_Y,GH+.42),(.06,2.6,.5),'trim')
-sg=text('Greenhouse sign','VƯỜN STEAM',(GX1+.1,DOOR_Y,GH+.3),.34,'blue');sg.rotation_euler.z=math.pi/2
+sg=text('Greenhouse sign','VƯỜN STEM',(GX1+.1,DOOR_Y,GH+.3),.34,'blue');sg.rotation_euler.z=math.pi/2
 # hoa hồng leo trên kính hai bên cửa (dây leo zíc zắc + bông hồng đỏ / hồng phấn)
 for sy in [-1,1]:
     y0=DOOR_Y+sy*(DOOR_W/2+.25)
@@ -1095,7 +1095,7 @@ for k in range(4):   # kệ sắt + thùng đồ bên trong
     for lvl in range(3):cube('Store box',(KX0+.45,y,.35+lvl*.65),(.5,1.2,.4),'wood')
 cube('Store crate stack',(KX1-.7,KY1-1.0,.45),(.9,1.2,.9),'wood',True)
 for k in range(3):ball('Store ball',(KX1-.6,KY0+1.2+k*.35,.32),(.16,.16,.16),'flower' if k%2 else 'blue')
-places.extend([{'id':'steam','label':'Vườn STEAM','position':[-43.8,.98,-DOOR_Y]},{'id':'store','label':'Nhà kho','position':[KCX,.98,-KY0+2.2]}])
+places.extend([{'id':'steam','label':'Vườn STEM','position':[-43.8,.98,-DOOR_Y]},{'id':'store','label':'Nhà kho','position':[KCX,.98,-KY0+2.2]}])
 
 # Lát gạch 2 khoảng cỏ người dùng khoanh (mặt gạch cao bằng sân):
 #  - góc đông bắc quanh nhà vệ sinh phải: three.js x 33 → 54.7 (tường bao), z -51 → -36 (tới đầu nhà xe chính)
