@@ -119,7 +119,7 @@ export function WallMurals(){
  useEffect(()=>{let live=true;document.fonts?.ready.then(()=>{if(!live)return;SCENES.forEach((s,i)=>{const g=drawn[i].image.getContext('2d');s.draw.call(s,g,drawn[i].image.width,drawn[i].image.height);frame(g,drawn[i].image.width,drawn[i].image.height);drawn[i].needsUpdate=true;});});return()=>{live=false;};},[drawn]);
  // Ảnh thật (nếu có public/murals/murals.json)
  useEffect(()=>{let live=true;const base=import.meta.env.BASE_URL+'murals/';
-  fetch(base+'murals.json').then(r=>r.ok?r.json():[]).then(list=>{if(!live||!Array.isArray(list))return;const loader=new THREE.TextureLoader();
+  fetch(base+'murals.json?v=an-duong-2').then(r=>r.ok?r.json():[]).then(list=>{if(!live||!Array.isArray(list))return;const loader=new THREE.TextureLoader();
    list.slice(0,SCENES.length).forEach((name,i)=>loader.load(base+name,t=>{if(!live)return;t.colorSpace=THREE.SRGBColorSpace;setCustom(c=>{const n=[...c];n[i]=t;return n;});}));}).catch(()=>{});
   return()=>{live=false;};},[]);
  useEffect(()=>()=>drawn.forEach(t=>t.dispose()),[drawn]);
