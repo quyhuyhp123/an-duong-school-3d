@@ -41,5 +41,13 @@ clock+=30000;await post('p3',{score:12,name:'Người 3'});b=await get('p3');ass
 const fl=(cid,score)=>fetch(base+'?game=flap',{method:'POST',headers:{'Content-Type':'application/json','X-Client-Id':cid},body:JSON.stringify({score,name:cid})}).then(r=>r.json());
 clock+=30000;await fl('f1',7);clock+=5000;await fl('f2',300);b=await fetch(base+'?game=flap').then(r=>r.json());
 assert.deepEqual(b.today.map(e=>e.score),[300,7],'bảng chạm bay riêng');b=await get('p3');assert.equal(b.today.length,1,'bảng ném bóng không bị lẫn');
+// 3 game phòng tin học: mỗi game 1 bảng chung (không phân biệt máy), không lẫn với nhau hay với bóng rổ
+const lab=(game,cid,score)=>fetch(base+'?game='+game,{method:'POST',headers:{'Content-Type':'application/json','X-Client-Id':cid},body:JSON.stringify({score,name:cid})}).then(r=>({status:r.status}));
+clock+=30000;
+assert.equal((await lab('plane','l1',23)).status,201);assert.equal((await lab('merge','l1',20480)).status,201);assert.equal((await lab('tower','l1',41)).status,201);
+clock+=4000;assert.equal((await lab('merge','l2',3000)).status,201);assert.equal((await lab('merge','l3',10000001)).status,400,'điểm ghép số vượt trần bị chặn');
+const top=async g=>(await fetch(base+'?game='+g).then(r=>r.json())).today.map(e=>e.score);
+assert.deepEqual(await top('plane'),[23]);assert.deepEqual(await top('merge'),[20480,3000]);assert.deepEqual(await top('tower'),[41]);
+assert.deepEqual(await top('flap'),[300,7],'bảng bóng rổ không bị lẫn');
 Date.now=realNow;server.close();
-console.log('PASS basketball leaderboard: ranking, best-of-day, rate limit, cheat rejection, daily reset keeps yesterday top 5, separate flap board');
+console.log('PASS basketball leaderboard: ranking, best-of-day, rate limit, cheat rejection, daily reset keeps yesterday top 5, separate flap board, 3 shared computer-lab boards');

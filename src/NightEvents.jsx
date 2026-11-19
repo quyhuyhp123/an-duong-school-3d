@@ -157,8 +157,13 @@ function DJParty(){
  </group>;
 }
 
+// Số đèn trong cảnh phải KHÔNG đổi khi sự kiện bắt đầu / kết thúc (đổi số đèn → three.js biên dịch lại shader của cả trường → đơ vài giây).
+// Lửa trại có 1 đèn điểm; nhạc hội có 1 đèn điểm + 4 đèn spot → khi chưa có sự kiện giữ sẵn các đèn "chờ" độ sáng 0 cho đủ số.
+function IdleLights({points,spots}){
+ return <>{Array.from({length:points},(_,i)=><pointLight key={'p'+i} intensity={0} distance={1}/>)}{Array.from({length:spots},(_,i)=><spotLight key={'s'+i} intensity={0} distance={1}/>)}</>;
+}
 export function NightEvents({event}){
- if(event==='campfire')return <Campfire/>;
+ if(event==='campfire')return <><Campfire/><IdleLights points={0} spots={4}/></>;
  if(event==='dj')return <DJParty/>;
- return null;
+ return <IdleLights points={1} spots={4}/>;
 }

@@ -44,7 +44,8 @@ test('Gate house stairs are centered with two rooms on each side on both floors'
   }
 });
 test('All classroom doors are enterable and can be exited',()=>{
-  for(const r of data.rooms){set(r.door);go(r.inside,r.id+' enter');assert(Math.abs(body.translation().y-r.inside[1])<.35,r.id+' wrong floor');assert(r.aisle,'Classroom must have a clear route to the board');go(r.aisle,r.id+' classroom aisle');go(r.door,r.id+' exit');}
+  for(const r of data.rooms){set(r.door);go(r.inside,r.id+' enter');assert(Math.abs(body.translation().y-r.inside[1])<.35,r.id+' wrong floor');if(!/^(GV|TH)-/.test(r.id)){assert(r.aisle,'Classroom must have a clear route to the board');go(r.aisle,r.id+' classroom aisle');}   // GV-: phòng giáo viên, TH-: phòng tin học (không có bảng lớp)
+ go(r.door,r.id+' exit');}
 });
 for(const place of data.places.filter(p=>data.stairs.some(s=>s.building===p.id))){
   test(place.label+' stairs to every occupied floor, then back down',()=>{
@@ -55,6 +56,23 @@ for(const place of data.places.filter(p=>data.stairs.some(s=>s.building===p.id))
   });
 }
 // tay vịn cầu thang có khung va chạm: đứng giữa đợt thang bước ngang vào khe giữa 2 đợt thang → bị chặn, không lọt xuống
+test('Every computer lab seat can be reached on foot',()=>{
+  // dãy B: hệ toạ độ cục bộ (x dọc dãy, y sâu vào phòng) → three.js [-36-y, ., -(19+x)]
+  for(const [room,prefix] of [['TH-B303','lab-']]){
+    const r=data.rooms.find(r=>r.id===room);assert(r,room+' missing');
+    const seats=data.seats.filter(s=>s.id.startsWith(prefix));assert(seats.length===12,prefix+' must have 12 seats');
+    for(const s of seats){
+      set(r.door);go(r.inside,room+' enter');
+      const aisle=[s.exit[0],s.exit[1],-(19+5.3)];   // lối dọc bên trái cửa thứ nhất, cùng hàng với chỗ đứng của ghế
+      go(aisle,s.id+' side aisle');go(s.exit,s.id+' seat exit');go(aisle,s.id+' back to aisle');go(r.inside,s.id+' leave');
+    }
+  }
+});
+test('School drum stands under the stairs and blocks walking',()=>{
+  set([-36+2.5,.98,-(19+1.96)]);go([-36+1.1,.98,-(19+1.96)],'walk up to the drum');
+  let blocked=false;try{go([-36-.45,.98,-(19+1.96)],'through drum');}catch{blocked=true;}
+  assert(blocked,'Drum must have a collider');
+});
 test('Stair handrails cannot be walked through',()=>{
   for(const r of data.stairs){
     const [a,b,c]=r.path,mid=[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],side=[c[0]-b[0],0,c[2]-b[2]],L=Math.hypot(side[0],side[2]);
@@ -121,6 +139,24 @@ test('Water house doorway and volleyball court are reachable',()=>{
 test('The garden and flower pergola remain walkable',()=>{
   set([0,1,42]);go([0,.98,34],'from gate');go([-18,.98,32],'garden entry');go([-18,.98,20],'garden path');
   set([20,1,20]);go([20,.98,11],'flower pergola and swings');
+});
+test('Stone and iron benches cannot be walked through, seats stay usable',()=>{
+  const benches=data.seats.filter(s=>/^(bench|iron)-/.test(s.id));assert(benches.length>=18,'benches missing');
+  for(const s of benches){
+    const [ex,,ez]=s.exit,[sx,,sz]=s.position,dx=sx-ex,dz=sz-ez,L=Math.hypot(dx,dz);
+    set(s.exit);const start=body.translation();
+    assert(Math.hypot(start.x-ex,start.z-ez)<.3,s.id+' exit point is blocked');   // chỗ đứng dậy còn trống
+    let passed=false;try{go([sx+dx/L*1.2,.98,sz+dz/L*1.2],s.id+' through');passed=true;}catch{}
+    assert(!passed,s.id+' can be walked through');
+  }
+});
+test('Garden lawn, paths and flower beds hold the feet up (no sinking)',()=>{
+  // mặt sân: tâm thân y≈.91; cỏ cao .22 m → y≈1.1; cỏ bồn tròn .455 m → y≈1.35
+  set([0,1,42]);go([0,.98,34],'from gate');go([-18,.98,32.6],'garden entry');go([-27,.98,32.6],'garden south strip');go([-27,.98,27.5],'over the flower bed border');go([-27,.98,20.6],'garden lawn');
+  assert(body.translation().y>1.08,'feet sink into the lawn: y='+body.translation().y.toFixed(2));
+  go([-18,.98,24.5],'onto the round bed edging');go([-18,.98,20.6],'round bed planting');
+  assert(body.translation().y>1.3,'feet sink into the round bed: y='+body.translation().y.toFixed(2));
+  go([-18,.98,12],'garden cross path');go([-18,.98,6],'leave the garden');
 });
 test('Jump works from an upper corridor',()=>{const r=data.rooms.find(r=>r.floor===2);set(r.door);const initial=body.translation().y;step({x:0,z:0},true);for(let i=0;i<10;i++)step();assert(body.translation().y>initial+.3,'Upper-floor jump');for(let i=0;i<120;i++)step();assert(Math.abs(body.translation().y-initial)<.1,'Land on the same floor');});
 test('Tree planters support the feet instead of hiding the lower legs',()=>{

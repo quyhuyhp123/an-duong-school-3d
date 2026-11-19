@@ -58,7 +58,7 @@ function mergeInto(root,meshes,created){
   const mesh=new THREE.Mesh(merged,material);
   mesh.castShadow=list[0].castShadow;mesh.receiveShadow=list[0].receiveShadow;mesh.userData.merged=true;mesh.name='merged';
   root.add(mesh);created.push(mesh);
-  for(const m of list){m.visible=false;created.hidden.push(m);}
+  for(const m of list){m.visible=false;m.userData.mergedAway=true;m.matrixAutoUpdate=false;m.matrixWorldAutoUpdate=false;created.hidden.push(m);}   // mảnh gốc đã gộp: ẩn, không tính lại ma trận mỗi khung (tiết kiệm CPU); Prewarm bỏ qua   // mergedAway: Prewarm bỏ qua mảnh gốc đã gộp
  }
 }
 
@@ -73,7 +73,7 @@ export function mergeStatic(root,mode='deep'){
   const nodes=[];root.traverse(o=>{if(!o.isMesh)nodes.push(o);});
   for(const n of nodes)mergeInto(n,n.children.filter(mergeable),created);
  }
- return ()=>{for(const m of created){m.parent?.remove(m);m.geometry.dispose();}for(const m of created.materials)m.dispose();for(const m of created.hidden)m.visible=true;};
+ return ()=>{for(const m of created){m.parent?.remove(m);m.geometry.dispose();}for(const m of created.materials)m.dispose();for(const m of created.hidden){m.visible=true;m.userData.mergedAway=false;m.matrixAutoUpdate=true;m.matrixWorldAutoUpdate=true;}};
 }
 
 export function useMergeStatic(ref,mode='deep',deps=[]){

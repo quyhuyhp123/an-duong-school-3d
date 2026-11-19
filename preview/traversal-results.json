@@ -1,6 +1,6 @@
 {
   "rooms": 65,
-  "colliders": 2402,
+  "colliders": 2461,
   "results": [
     {
       "name": "Main staircase sits under the right motto bay with a wider corridor",
@@ -36,6 +36,14 @@
     },
     {
       "name": "D - Nhà gần cổng stairs to every occupied floor, then back down",
+      "passed": true
+    },
+    {
+      "name": "Every computer lab seat can be reached on foot",
+      "passed": true
+    },
+    {
+      "name": "School drum stands under the stairs and blocks walking",
       "passed": true
     },
     {
@@ -100,6 +108,14 @@
     },
     {
       "name": "The garden and flower pergola remain walkable",
+      "passed": true
+    },
+    {
+      "name": "Stone and iron benches cannot be walked through, seats stay usable",
+      "passed": true
+    },
+    {
+      "name": "Garden lawn, paths and flower beds hold the feet up (no sinking)",
       "passed": true
     },
     {

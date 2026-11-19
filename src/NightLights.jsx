@@ -122,7 +122,7 @@ function seededRandom(seed){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)
 export function useLitClassrooms(scene,rooms,share=.5){
  const mats=useMemo(()=>({
   window:new THREE.MeshStandardMaterial({color:'#3b4a48',emissive:'#fff8ee',emissiveIntensity:0,roughness:.25}),
-  glass:new THREE.MeshStandardMaterial({color:'#b8dbe6',emissive:'#fff8ee',emissiveIntensity:0,roughness:.05,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}),
+  glass:new THREE.MeshStandardMaterial({color:'#b8dbe6',emissive:'#fff8ee',emissiveIntensity:0,roughness:.05,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true}),   // 1 lượt vẽ (xem World.jsx)
  }),[]);
  const last=useRef(-1);
  useEffect(()=>{

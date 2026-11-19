@@ -59,6 +59,7 @@ export function PhotoRoom(){
   </group>
   <group position={[33.35,.26,45.6]} rotation={[0,-.5,0]}><AvatarBody look={1}/></group>
   <Box p={[33.5,3.18,44]} s={[1.2,.08,.3]} c="#fff6d4"/>
-  <pointLight position={[33.5,2.7,44]} color="#fff3dc" intensity={22} distance={8} decay={1.5}/>
- </group><RigidBody type="fixed" colliders={false}><CuboidCollider position={[32,.79,45.9]} args={[.65,.53,.47]}/><CuboidCollider position={[33.35,1.1,45.6]} args={[.3,.84,.28]}/><CuboidCollider position={[35.95,.64,43.4]} args={[.425,.38,.925]}/></RigidBody></>;
+ </group>
+ {/* đèn để NGOÀI nhóm ẩn/hiện theo khoảng cách: đèn bị ẩn/hiện làm đổi số đèn → biên dịch lại shader cả trường (giật) */}
+ <pointLight position={[33.5,2.7,44]} color="#fff3dc" intensity={22} distance={8} decay={1.5}/><RigidBody type="fixed" colliders={false}><CuboidCollider position={[32,.79,45.9]} args={[.65,.53,.47]}/><CuboidCollider position={[33.35,1.1,45.6]} args={[.3,.84,.28]}/><CuboidCollider position={[35.95,.64,43.4]} args={[.425,.38,.925]}/></RigidBody></>;
 }

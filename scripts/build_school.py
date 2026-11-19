@@ -82,7 +82,20 @@ cube('Courtyard',(0,4,-.08),(66,78,.18),'tile')
 for x in range(-33,34,2): cube('Paving joint',(x,4,.018),(.018,78,.012),'grout')
 for y in range(-35,44,2): cube('Paving joint',(0,y,.018),(66,.018,.012),'grout')
 building('A - Dãy chính',0,40,68,3)
+# Dãy B sơn trắng: tường/cột (cream), vách trong (wall), sàn & gờ (trim) đổi sang tông trắng — chỉ riêng dãy B.
+mat('bwhite',(.95,.95,.93));mat('bwall',(.9,.89,.86));mat('btrim',(.88,.88,.86))
+mat('drumred',(.6,.04,.035));mat('drumskin',(.86,.8,.66))
+_b_before=set(bpy.data.objects)
 building('B - Dãy trái',-36,19,30,3,math.pi/2)
+_remap={M['cream']:M['bwhite'],M['wall']:M['bwall'],M['trim']:M['btrim']};_white={}
+for o in set(bpy.data.objects)-_b_before:
+    if o.type!='MESH' or not any(m in _remap for m in o.data.materials):continue
+    if o.data.name not in _white:
+        d=o.data.copy()
+        for i,m in enumerate(d.materials):
+            if m in _remap:d.materials[i]=_remap[m]
+        _white[o.data.name]=d
+    o.data=_white[o.data.name]
 building('C - Dãy phải',36,13,42,3,-math.pi/2,False)
 for side in [-1,1]:
     for floor in range(3):cube('Corner corridor connecting slab',(side*32,34.5,floor*3.6),(4.3,5,.2),'trim',True)
@@ -151,6 +164,7 @@ def bench(x,y,rot=0):
     for dx in [-.9,.9]: cube('Bench foot',(dx,0,.28),(.16,.55,.56),'benchwhite')
     for wording,z,size in [('TẬP THỂ LỚP 12A3',1.32,.13),('NIÊN KHÓA 2015–2018',1.09,.12),('KÍNH TẶNG',.87,.13)]:
         text('Stone bench dedication',wording,(0,.245,z),size,'benchwhite')
+    cube('Bench collider',(0,.05,.74),(2.55,.8,1.48),'black',True)   # khối va chạm vô hình (mặt ngồi + lưng tựa) — không đi xuyên ghế
     seats.append({'id':f'bench-{len(seats)}','label':'ghế đá','position':[x,1.015,-y],'yaw':math.pi-rot,'exit':[x+math.sin(rot)*1.1,.98,-y+math.cos(rot)*1.1]})
     for o in set(bpy.data.objects)-before:
         p=o.location.copy(); o.location=(x+p.x*math.cos(rot)-p.y*math.sin(rot),y+p.x*math.sin(rot)+p.y*math.cos(rot),p.z); o.rotation_euler.z+=rot
@@ -163,6 +177,7 @@ for side in [-1,1]:
 
 # The garden now fills the space right up to the first areca planting strip.
 garden_x,garden_y=-18,-20.6
+_garden_before=set(bpy.data.objects)
 cube('Garden curb',(garden_x,garden_y,.17),(27.6,24.8,.34),'brick')
 cube('Garden lawn',(garden_x,garden_y,.36),(27,24.2,.12),'grass')
 cube('Garden path',(garden_x,garden_y,.45),(1.5,24.8,.08),'tile')
@@ -190,6 +205,17 @@ for ix,(x0,x1) in enumerate([(-30.8,-20.5),(-15.5,-5.2)]):
             for k in range(8):
                 a=k*math.tau/8
                 ball('Garden colourful blossom',(xx+.44*math.cos(a),yy+.44*math.sin(a),1.16+(.1 if k%2 else 0)),(.16,.16,.13),color)
+# Vườn hoa: cỏ & lối đi trước đây cao .42–.49 m nhưng không có va chạm → nhân vật đi ở mặt đất, lún chân.
+# Hạ cả khu vườn .2 m (cỏ cao .22 m — bước lên được, autostep .27 m) rồi thêm va chạm cho bờ, cỏ, lối đi, bồn tròn, viền luống.
+for o in set(bpy.data.objects)-_garden_before:
+    if o.name.startswith(('Garden','Flower')):o.location.z-=.2
+for o in [o for o in bpy.data.objects if o.name.startswith(('Garden curb','Garden lawn'))]:solids.append(o)   # bờ gạch đỉnh .14, cỏ đỉnh .22
+for o in [o for o in bpy.data.objects if o.name.startswith(('Garden path','Garden cross path'))]:
+    o.location.z=.24;o.scale.z=.04;solids.append(o)   # lối lát gạch .22 → .26, nhô 4 cm trên cỏ
+for o in [o for o in bpy.data.objects if o.name.startswith('Flower bed brick border')]:
+    o.location.z=.335;o.scale.z=.27;solids.append(o)  # viền luống chạm mặt cỏ (.2 → .47), bước qua được
+for r,z,h in [(2.9,.30,.16),(2.55,.41,.09)]:      # bồn tròn giữa vườn: viền .38, cỏ trong bồn .455
+    for w,d in [(2*r,.8*r),(1.6*r,1.6*r),(.8*r,2*r)]:cube('Planter support collider',(garden_x,garden_y,z),(w,d,h),'grass',True)
 # Pave the marked entrance forecourt between the building and basketball court.
 cube('Main gate tiled forecourt',(.5,-40.5,.025),(21,15,.08),'tile',True)
 for xx in range(-10,12,2):cube('Forecourt paving joint',(xx,-40.5,.073),(.018,15,.012),'grout')
@@ -252,6 +278,7 @@ def iron_bench(x,y,rot):
         for j in range(18):
             a=j*math.pi*1.7/18;b=(j+1)*math.pi*1.7/18
             beam('Black bench ornamental scroll',(dx,-.04+.22*math.cos(a),.7+.18*math.sin(a)),(dx,-.04+.22*math.cos(b),.7+.18*math.sin(b)),.018,'black')
+    cube('Bench collider',(0,.03,.685),(2.1,.8,1.37),'black',True)   # khối va chạm vô hình cả ghế (kể cả tay vịn) — không đi xuyên ghế
     for ob in set(bpy.data.objects)-before:
         p=ob.location.copy();ob.location=(x+p.x*math.cos(rot)-p.y*math.sin(rot),y+p.x*math.sin(rot)+p.y*math.cos(rot),p.z+.28);ob.rotation_euler.z+=rot
     seats.append({'id':f'iron-{len(seats)}','label':'ghế băng','position':[x,1.25,-y],'yaw':rot,'exit':[x+math.sin(rot)*1.1,.98,-y+math.cos(rot)*1.1]})
@@ -1043,7 +1070,7 @@ for pot in list(bpy.data.objects):
         cube('Planter support collider',tuple(pot.location),(w,d,height),'grass',True)
 export_campus_data()
 # khung va chạm của lan can nhà xe chỉ dùng cho dữ liệu va chạm, không đưa vào mô hình hiển thị
-for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or 'Stair rail collider' in o.name or o.name.startswith(('Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
+for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or 'Stair rail collider' in o.name or o.name.startswith(('Bench collider','Lounge chair collider','School drum collider','Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
 
 # Merge static meshes by material for a small GLB and fewer draw calls on the web.
 fonts=[o for o in bpy.context.scene.objects if o.type=='FONT']

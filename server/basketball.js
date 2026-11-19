@@ -1,5 +1,6 @@
 // Bảng xếp hạng 2 mini-game bóng rổ (mỗi game một bảng riêng):
 //   ?game=shoot (mặc định) — ném bóng 45 giây ở rổ gần căng tin;  ?game=flap — chạm cho bóng bay vào rổ ở rổ gần xích đu.
+//   ?game=plane | merge | tower — 3 game trên máy tính phòng tin học (mọi máy cùng game ghi chung 1 bảng).
 //   GET  /api/basketball?game=…      → {day, today:[top 10], yesterday:{day, top:[top 5]} | null, me:{best,rank} | null}
 //   POST /api/basketball?game=… {score,name,cls,role} (header X-Client-Id) → lưu điểm cao nhất trong ngày của người chơi đó
 // Ngày tính theo giờ Việt Nam (UTC+7). Sang ngày mới: bảng hôm nay reset, giữ lại top 5 của ngày trước.
@@ -12,8 +13,14 @@ import {clientIp,BoundedMap,takeToken} from './net.js';
 const GAMES={
  shoot:{store:jsonFile('basketball.json',{day:null,scores:{},yesterday:null}),max:200,gap:20000,clients:new BoundedMap(50000,60000)},
  flap:{store:jsonFile('basketball-flap.json',{day:null,scores:{},yesterday:null}),max:999,gap:4000,clients:new BoundedMap(50000,60000)},
+ // 3 game trên máy tính phòng tin học (dãy B tầng 3) — mọi máy cùng game ghi chung 1 bảng
+ plane:{store:jsonFile('lab-plane.json',{day:null,scores:{},yesterday:null}),max:9999,gap:3000,clients:new BoundedMap(50000,60000)},
+ merge:{store:jsonFile('lab-merge.json',{day:null,scores:{},yesterday:null}),max:10000000,gap:3000,clients:new BoundedMap(50000,60000)},
+ tower:{store:jsonFile('lab-tower.json',{day:null,scores:{},yesterday:null}),max:9999,gap:3000,clients:new BoundedMap(50000,60000)},
 };
-const byIp=new BoundedMap(20000,10*60000);
+// Giới hạn theo IP dùng CHUNG cho mọi game: cả lớp / phòng tin học chung 1 wifi = chung 1 IP → phải đủ cho ~30 người gửi điểm liên tục
+// (mỗi người vẫn bị giới hạn riêng theo 'gap' ở trên). 4 lượt/giây, dồn tối đa 80.
+const byIp=new BoundedMap(20000,10*60000),IP_PER_SEC=4,IP_BURST=80;
 
 export const vnDay=(t=Date.now())=>new Date(t+7*3600e3).toISOString().slice(0,10);
 const ranked=scores=>Object.values(scores??{}).sort((a,b)=>b.score-a.score||a.at-b.at);
@@ -42,7 +49,7 @@ export async function handleBasketball(req,res){
   if(req.method==='POST'){
    const ip=clientIp(req),now=Date.now();
    if(!cid){json(res,400,{error:'Thiếu mã trình duyệt.'});return true;}
-   if(now-(cfg.clients.get(cid)??0)<cfg.gap||!takeToken(byIp,ip,1,30)){json(res,429,{error:'Bạn gửi điểm hơi nhanh, đợi chút rồi thử lại nhé.'});return true;}
+   if(now-(cfg.clients.get(cid)??0)<cfg.gap||!takeToken(byIp,ip,IP_PER_SEC,IP_BURST)){json(res,429,{error:'Bạn gửi điểm hơi nhanh, đợi chút rồi thử lại nhé.'});return true;}
    const data=await readJson(req,2048);if(!data){json(res,400,{error:'Dữ liệu không hợp lệ.'});return true;}
    const score=Number(data.score);
    if(!Number.isInteger(score)||score<0||score>cfg.max){json(res,400,{error:'Điểm không hợp lệ.'});return true;}
