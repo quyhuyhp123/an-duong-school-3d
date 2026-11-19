@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import WebSocket from 'ws';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 process.env.DATA_DIR=await mkdtemp(join(tmpdir(),'school-mp-'));
 const {attachMultiplayer}=await import('../server/multiplayer.js');
 const {encodeMove,decodeSnapshot}=await import('../src/protocol.js');
@@ -15,7 +16,7 @@ async function client(options={}){
  const ws=new WebSocket(`ws://127.0.0.1:${server.address().port}/multiplayer`,options),messages=[],seen=new Map();
  const c={ws,messages,seen,snapshots:0,send:m=>ws.send(JSON.stringify(m)),move:(x,y,z,yaw=0,mode=0)=>ws.send(Buffer.from(encodeMove(x,y,z,yaw,mode)))};
  ws.on('message',(raw,isBinary)=>{
-  if(isBinary){c.snapshots++;decodeSnapshot(new DataView(raw.buffer,raw.byteOffset,raw.byteLength),(id,x,y,z,yaw,mode)=>seen.set(id,{x,y,z,mode,at:c.snapshots}));}
+  if(isBinary){c.snapshots++;decodeSnapshot(new DataView(raw.buffer,raw.byteOffset,raw.byteLength),(id,x,y,z,yaw,mode)=>seen.set(id,{x,y,z,yaw,mode,at:c.snapshots}));}
   else{const m=JSON.parse(raw);messages.push(m);if(m.type==='welcome')c.id=m.id;}
  });
  await new Promise(r=>ws.on('open',r));clients.push(c);await until(()=>c.id);return c;
@@ -45,9 +46,51 @@ try{
  const teacherViewer=await client();assert.equal(meta(teacherViewer,a.id).identity.subject,'Math');teacherViewer.ws.close();
  // The server relays the wheelie flag without changing the bicycle dance code.
  a.move(5,1,5,0,56|64);await until(()=>b.seen.get(a.id)?.mode===(56|64));
- a.move(5,1,5,0,0);await until(()=>b.seen.get(a.id)?.mode===0);
+ // A spinning wheelie keeps the riding flag both at rest and while moving.
+ a.move(5,1,5,1.5,56|64);await until(()=>b.seen.get(a.id)?.yaw>0&&b.seen.get(a.id)?.mode===(56|64));
+ a.move(6,1,5,3,56|64);await until(()=>b.seen.get(a.id)?.x===6&&b.seen.get(a.id)?.mode===(56|64));
+ a.move(6,1,5,3,56|128);await until(()=>b.seen.get(a.id)?.mode===(56|128));
+ a.move(6,1,5,3,56|64|128);await until(()=>b.seen.get(a.id)?.mode===(56|64|128));
+ a.move(6,1,5,3,128);await until(()=>b.seen.get(a.id)?.mode===0);
+ a.move(5,1,5,0,0);await until(()=>b.seen.get(a.id)?.mode===0&&b.seen.get(a.id)?.x===5&&b.seen.get(a.id)?.yaw===0);
  // Delta: không di chuyển thì không gửi lại
  const before=b.seen.get(a.id).at;await new Promise(r=>setTimeout(r,400));assert.equal(b.seen.get(a.id).at,before,'unchanged player must not be resent');
+ // Stone benches have two seats; black benches have three and targeted interactions.
+ const benches=JSON.parse(readFileSync(new URL('../public/models/campus-data.json',import.meta.url),'utf8')).seats.filter(s=>/^(bench|iron)-/.test(s.id));
+ for(const bench of [benches.find(s=>s.id.startsWith('bench-')),benches.find(s=>s.id.startsWith('iron-'))]){
+  for(const p of [a,b,c])p.move(...bench.position);await new Promise(r=>setTimeout(r,40));
+  for(const p of [a,b])p.send({type:'sit',id:bench.id});
+  await until(()=>wss.players.get(a.id).seat?.id===bench.id&&wss.players.get(b.id).seat?.id===bench.id);
+  assert.notEqual(wss.players.get(a.id).seat.slot,wss.players.get(b.id).seat.slot);
+  assert.equal(wss.players.get(a.id).yaw,bench.yaw);
+  c.send({type:'sit',id:bench.id});
+  const triple=bench.id.startsWith('iron-');
+  if(triple){
+   await until(()=>wss.players.get(c.id).seat?.id===bench.id);
+   assert.equal(new Set([a,b,c].map(p=>wss.players.get(p.id).seat.slot)).size,3);
+   const fourth=await client();fourth.move(...bench.position);fourth.send({type:'sit',id:bench.id});
+   await until(()=>fourth.messages.some(m=>m.type==='error'));assert.equal(wss.players.get(fourth.id).seat,null);fourth.ws.close();
+  }else{await until(()=>c.messages.some(m=>m.type==='error'));assert.equal(wss.players.get(c.id).seat,null);}
+  for(const action of ['hand','lean','kiss']){
+   const before=b.messages.length;a.send({type:'invite',action,to:b.id});
+   const invite=await until(()=>b.messages.slice(before).find(m=>m.type==='invite'));
+   assert.equal(wss.players.get(a.id).action,null,'interaction must wait for consent');
+   b.send({type:'respond',id:invite.id,accept:true});await until(()=>wss.players.get(a.id).action===action&&wss.players.get(b.id).action===action);
+   a.send({type:'stop'});await until(()=>!wss.players.get(a.id).action&&!wss.players.get(b.id).action);
+  }
+  if(triple){
+   const before=c.messages.length,beforeOther=b.messages.length;
+   a.send({type:'invite',action:'kiss',to:c.id});const selected=await until(()=>c.messages.slice(before).find(m=>m.type==='invite'));
+   assert.equal(b.messages.slice(beforeOther).some(m=>m.type==='invite'),false,'only the selected person receives the invitation');
+   b.send({type:'respond',id:selected.id,accept:true});await new Promise(r=>setTimeout(r,40));assert.equal(wss.players.get(a.id).action,null);
+   c.send({type:'respond',id:selected.id,accept:true});await until(()=>wss.players.get(a.id).partner===c.id);
+   assert.equal(wss.players.get(b.id).action,null,'third player remains independent');
+   c.send({type:'leave'});await until(()=>!wss.players.get(a.id).action&&!wss.players.get(c.id).seat);
+  }
+  for(const p of [a,b])p.send({type:'leave'});await until(()=>!wss.players.get(a.id).seat&&!wss.players.get(b.id).seat);
+  assert.deepEqual(wss.players.get(a.id).position,bench.exit);
+ }
+ a.messages.length=0;b.messages.length=0;c.messages.length=0;
  for(const p of [a,b,c]){p.move(16.5,1,13);}await new Promise(r=>setTimeout(r,30));
  for(const p of [a,b,c])p.send({type:'sit',swing:0});
  const sa=await until(()=>a.messages.find(m=>m.type==='seated')),sb=await until(()=>b.messages.find(m=>m.type==='seated'));assert.notEqual(sa.seat.slot,sb.seat.slot);

@@ -4,6 +4,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {BAYS,BAY_SIZE,bayHasBike,onBaysChange} from './bikes';
+import {BikeFlames} from './BikeFlames';
 
 const UP=new THREE.Vector3(0,1,0);
 function paint(geo,color){
@@ -43,8 +44,8 @@ function bikeResources(){ // dùng chung cho mọi xe (đỗ & đang chạy)
 export const bikeColorOf=id=>FRAME_COLORS[[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%FRAME_COLORS.length];
 
 // Xe gắn dưới người đang đạp (của mình hoặc người khác)
-export function RidingBike({color=FRAME_COLORS[0]}){
- const r=bikeResources();return <mesh geometry={r.geos[Math.max(0,FRAME_COLORS.indexOf(color))]} material={r.mat} castShadow/>;
+export function RidingBike({color=FRAME_COLORS[0],fire=false}){
+ const r=bikeResources();return <group><mesh geometry={r.geos[Math.max(0,FRAME_COLORS.indexOf(color))]} material={r.mat} castShadow/>{fire&&<BikeFlames/>}</group>;
 }
 
 // Vạch kẻ ô đỗ + xe đang đỗ (cập nhật khi người chơi lấy / đỗ xe)

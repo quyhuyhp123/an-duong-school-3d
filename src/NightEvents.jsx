@@ -85,7 +85,9 @@ function DanceFloor(){
  const c=useMemo(()=>new THREE.Color(),[]),palette=useMemo(()=>PALETTE.map(x=>new THREE.Color(x)),[]);
  useEffect(()=>{const d=new THREE.Object3D();for(let i=0;i<cols*rows;i++){d.position.set((i%cols-(cols-1)/2)*size,0,(Math.floor(i/cols)-(rows-1)/2)*size);d.rotation.set(-Math.PI/2,0,0);d.updateMatrix();ref.current.setMatrixAt(i,d.matrix);ref.current.setColorAt(i,c.set('#111'));}ref.current.instanceMatrix.needsUpdate=true;},[c]);
  useFrame(()=>{
-  const b=beatNow(),beat=Math.floor(b),bar=Math.floor(b/4),lv=levelNow(),pulse=pulseNow(2)*lv,m=ref.current;
+  // Audio can be scheduled slightly ahead of the current clock on startup/resume.
+  // Keep palette indices nonnegative while waiting for that first beat.
+  const b=Math.max(0,beatNow()),beat=Math.floor(b),bar=Math.floor(b/4),lv=levelNow(),pulse=pulseNow(2)*lv,m=ref.current;
   const cx=(cols-1)/2,cz=(rows-1)/2,pattern=bar%3;
   for(let i=0;i<cols*rows;i++){
    const x=i%cols,z=Math.floor(i/cols),ring=Math.max(Math.abs(x-cx),Math.abs(z-cz));

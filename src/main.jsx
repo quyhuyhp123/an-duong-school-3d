@@ -89,7 +89,7 @@ function App(){
   useEffect(()=>{setListenerPosition(overview?[1e4,0,1e4]:[position.x,position.y,position.z])},[position,overview]);
   function visit(p){setDestination({position:p,yaw:0,time:Date.now()});setOverview(false);setMap(false)}
   // chọn nhân vật xong: đứng yên trên vỉa hè trước cổng chính, quay mặt vào trường (người chơi tự đi vào)
-  function enterSchool(p=profile){const bike=p?.transport==='bike';setOnboard(null);if(!entered.current||!warm){entered.current=true;setWarm(false);setWarmPct(0);setPrep(Date.now());/* lượt chuẩn bị thứ 2 (Prewarm pass=1) phải xong mới vào */}setDestination({position:entryFor(bike?'bike':'walk'),transport:bike?'bike':'walk',yaw:0,time:Date.now()});setOverview(false);setMap(false);setAlbum(false)}
+  function enterSchool(p=profile){document.activeElement?.blur?.();const bike=p?.transport==='bike';setLab(false);setBasket(false);setGreet(false);setOnboard(null);if(!entered.current||!warm){entered.current=true;setWarm(false);setWarmPct(0);setPrep(Date.now());/* lượt chuẩn bị thứ 2 (Prewarm pass=1) phải xong mới vào */}setDestination({position:entryFor(bike?'bike':'walk'),transport:bike?'bike':'walk',yaw:0,time:Date.now()});setOverview(false);setMap(false);setAlbum(false)}
   const currentRoom=data?.rooms.find(r=>{
     if(Math.abs(r.inside[1]-position.y)>.75||!r.aisle)return false;
     const dx=r.aisle[0]-r.door[0],dz=r.aisle[2]-r.door[2],length2=dx*dx+dz*dz;
@@ -97,7 +97,7 @@ function App(){
     return t>.2&&t<1.12&&Math.hypot(position.x-r.door[0]-t*dx,position.z-r.door[2]-t*dz)<2.5;
   });
   return <main>
-    <ErrorBoundary><Canvas frameloop={lab||basket||album?"demand":"always"} shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:true}} onCreated={st=>{if(/[?&]perf(&|=|$)/.test(location.search))window.__three=st;/* ?perf: công cụ đo hiệu năng đọc cảnh 3D */}}>
+    <ErrorBoundary><Canvas frameloop={lab||basket||album||greet?"demand":"always"} shadows camera={{position:[0,3.7,55],fov:48,near:.2,far:450}} dpr={dpr} gl={{powerPreference:'high-performance',antialias:true}} onCreated={st=>{if(/[?&]perf(&|=|$)/.test(location.search))window.__three=st;/* ?perf: công cụ đo hiệu năng đọc cảnh 3D */}}>
       {/* chỉnh độ nét tự động chỉ khi đang chơi — lúc màn hình chào / chuẩn bị máy đang bận biên dịch, đo sẽ sai và hạ độ nét oan */}
       {!onboard&&!prep&&<PerformanceMonitor onDecline={()=>setDpr(d=>Math.max(1,d-.5))} flipflops={2}/>}{/* chỉ HẠ độ nét khi máy yếu (bước .5, tối đa 1–2 lần): mỗi lần đổi độ nét là 1 lần cấp phát lại khung vẽ → khựng; không tăng/giảm qua lại */}
       <color attach="background" args={['#c8dce6']}/><fog attach="fog" args={['#c8dce6',170,320]}/>

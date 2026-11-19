@@ -28,9 +28,18 @@ export function Prewarm({ready,pass=0,onProgress,onDone}){
    });
    try{if(gl.compileAsync)await gl.compileAsync(scene,camera);else gl.compile(scene,camera);}catch(e){console.warn('[prewarm] compile',e);}
    onProgress?.(.55);await frame();
-   const seen=new Set();
+   const seen=new Set(),materials=new Set();
    scene.traverse(o=>{const ms=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
-    for(const m of ms)for(const k of Object.keys(m)){const t=m[k];if(t?.isTexture&&!seen.has(t)){seen.add(t);try{gl.initTexture(t);}catch{}}}});
+    for(const m of ms){
+     if(materials.has(m))continue;
+     materials.add(m);
+     for(const t of Object.values(m)){
+      if(!t?.isTexture||seen.has(t))continue;
+      seen.add(t);
+      try{gl.initTexture(t);}catch{}
+     }
+    }
+   });
    onProgress?.(.7);await frame();
    // hiện lại NGAY trước khi vẽ thử: trong lúc chờ biên dịch, các cụm ở xa đã bị useNearVisible / lịch biểu diễn ẩn lại
    // → nếu không, dữ liệu hình khối của chúng không được đưa lên card và sẽ nạp (giật) khi người chơi đi tới

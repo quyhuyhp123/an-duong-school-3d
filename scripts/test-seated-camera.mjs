@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {seatedCamera} from '../src/seatedCamera.js';
+const open=seatedCamera(0,.1,1.4,()=>10);
+assert(open.distance>=3.4&&open.pitch>=.22,'seating must recover from an already zoomed-in camera');
+const blocked=seatedCamera(0,.3,4.2,yaw=>Math.abs(yaw)<.4?.24:4.2);
+assert(blocked.distance>=3.2&&blocked.yaw!==0,'camera must orbit around the chair instead of zooming into the avatar');
+const wall=seatedCamera(0,.3,4.2,(yaw,pitch)=>pitch>.5?4.2:.5);
+assert(wall.distance>=3.2&&wall.pitch>=.5,'camera should look over nearby furniture');
+const tight=seatedCamera(0,.3,4.2,yaw=>yaw<0?1.8:.5);
+assert.equal(tight.distance,1.8,'in a tight room choose the clearest available angle');
+console.log('PASS: seated camera restores distance, avoids blocked angles, raises view, and respects walls');

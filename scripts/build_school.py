@@ -288,16 +288,16 @@ for row_x in [-3,5]:
 # Black slatted park benches: two in every palm interval, alternating direction.
 def iron_bench(x,y,rot):
     before=set(bpy.data.objects)
-    for yy in [-.24,-.08,.08,.24]:cube('Black bench seat slat',(0,yy,.57),(2,.115,.075),'black')
-    for z in [.8,1.02,1.24]:cube('Black bench back slat',(0,.31,z),(2,.075,.14),'black')
-    for dx in [-.87,.87]:
+    for yy in [-.24,-.08,.08,.24]:cube('Black bench seat slat',(0,yy,.57),(2.6,.115,.075),'black')
+    for z in [.8,1.02,1.24]:cube('Black bench back slat',(0,.31,z),(2.6,.075,.14),'black')
+    for dx in [-1.16,1.16]:
         for yy in [-.22,.25]:beam('Black bench curved leg',(dx,yy*1.4,.05),(dx,yy,.55),.055,'black')
         beam('Black bench back frame',(dx,.28,.4),(dx,.37,1.34),.05,'black')
         beam('Black bench arm',(dx,-.36,.86),(dx,.33,.94),.045,'black')
         for j in range(18):
             a=j*math.pi*1.7/18;b=(j+1)*math.pi*1.7/18
             beam('Black bench ornamental scroll',(dx,-.04+.22*math.cos(a),.7+.18*math.sin(a)),(dx,-.04+.22*math.cos(b),.7+.18*math.sin(b)),.018,'black')
-    cube('Bench collider',(0,.03,.685),(2.1,.8,1.37),'black',True)   # khối va chạm vô hình cả ghế (kể cả tay vịn) — không đi xuyên ghế
+    cube('Bench collider',(0,.03,.685),(2.7,.8,1.37),'black',True)   # khối va chạm vô hình cả ghế (kể cả tay vịn) — không đi xuyên ghế
     for ob in set(bpy.data.objects)-before:
         p=ob.location.copy();ob.location=(x+p.x*math.cos(rot)-p.y*math.sin(rot),y+p.x*math.sin(rot)+p.y*math.cos(rot),p.z+.28);ob.rotation_euler.z+=rot
     seats.append({'id':f'iron-{len(seats)}','label':'ghế băng','position':[x,1.25,-y],'yaw':rot,'exit':[x+math.sin(rot)*1.1,.98,-y+math.cos(rot)*1.1]})
@@ -305,7 +305,7 @@ ys=[-31.125,-23.75,-16.375,-9]
 for row in [-3,5]:
     for i in range(3):
         midpoint=(ys[i]+ys[i+1])/2
-        for offset in [-1.15,1.15]:iron_bench(row,midpoint+offset,math.pi/2 if i%2==0 else -math.pi/2)
+        for offset in [-1.55,1.55]:iron_bench(row,midpoint+offset,math.pi/2 if i%2==0 else -math.pi/2)
 
 # Three large shade trees at the courtyard positions marked in the reference.
 for x,y in [(-16,0),(16,1),(16,22),(-6.5,-38)]:

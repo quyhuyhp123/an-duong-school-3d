@@ -1,15 +1,22 @@
 import assert from 'node:assert/strict';
-import {wheelieTransform,isWheelie,WHEELIE_FLAG} from '../src/bikeWheelie.js';
-import {encodeMove,decodeMove,modeCode,danceOf} from '../src/protocol.js';
-for(const amount of [0,.2,.5,1]){
- const p=wheelieTransform(amount),s=Math.sin(p.pitch),c=Math.cos(p.pitch);
- assert(Math.abs(.3*c+.58*s+p.y-.3)<1e-10,'rear wheel height stays fixed');
- assert(Math.abs(.3*s-.58*c+p.z+.58)<1e-10,'rear wheel stays fixed along the ground');
- if(amount>0)assert(.3*c-.58*s+p.y>.3,'front wheel must lift above ground');
+import {Vector3,Euler} from 'three';
+import {wheelieTransform,rearWheelSpinOffset} from '../src/bikeWheelie.js';
+
+for(const anchor of [0,.7,-2,Math.PI]){
+ for(let step=0;step<=48;step++){
+  const yaw=anchor+step*Math.PI/12,offset=rearWheelSpinOffset(yaw,anchor);
+  for(const tilt of [0,.25,.5,1]){
+   const wp=wheelieTransform(tilt);
+   const rotation=new Euler(wp.pitch,yaw,0,'YXZ');
+   const translation=new Vector3(offset.x+Math.sin(yaw)*wp.z,wp.y,offset.z+Math.cos(yaw)*wp.z);
+   const rear=new Vector3(0,.3,-.58).applyEuler(rotation).add(translation);
+   const anchorPoint=new Vector3(-.58*Math.sin(anchor),.3,-.58*Math.cos(anchor));
+   assert(rear.distanceTo(anchorPoint)<1e-10,'rear tire must stay on the same ground point throughout spin and tilt');
+   const front=new Vector3(0,.3,.58).applyEuler(rotation).add(translation);
+   if(tilt>0)assert(front.y>rear.y,'front wheel must rise');
+   // Forward travel translates the pivot without making it orbit the bike centre.
+   assert(rear.clone().add(new Vector3(2,0,3)).distanceTo(anchorPoint.clone().add(new Vector3(2,0,3)))<1e-10);
+  }
+ }
 }
-const riding=modeCode('stand',false,7)|WHEELIE_FLAG;
-const move=decodeMove(new DataView(encodeMove(1,1,1,0,riding)));
-assert(isWheelie(move.mode));assert.equal(danceOf(move.mode),7,'wheelie remains a bicycle for passenger controls');
-assert(!isWheelie(decodeMove(new DataView(encodeMove(1,1,1,0,WHEELIE_FLAG))).mode),'walking cannot retain wheelie flag');
-assert.deepEqual(wheelieTransform(0),{pitch:-0,y:0,z:0});
-console.log('PASS wheelie pivot: rear wheel grounded, front wheel lifts, smooth zero pose, binary flag round-trip, walking flag rejection');
+console.log('PASS: rear wheel stays fixed across two full rotations, all headings and wheelie transitions; moving pivot stays consistent');

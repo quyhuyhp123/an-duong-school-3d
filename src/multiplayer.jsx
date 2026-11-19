@@ -1,10 +1,11 @@
-import {isWheelie,wheelieTransform} from './bikeWheelie.js';
+import {isWheelie,hasBikeFire,wheelieTransform} from './bikeWheelie.js';
+import {sameSeat} from './seating.js';
 import {Nameplate} from './Nameplate';
 import {characterIdentity} from './characterIdentity.js';
 import {pushMotion,sampleMotion} from './networkMotion.js';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {useFrame,useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
+import {useFrame,useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {encodeMove,decodeSnapshot,yawOf,modeName,GROUND_FLAG,danceOf} from './protocol';
@@ -52,7 +53,7 @@ function applyLive(m){
  return m.type==='chat-error';
 }
 // meta: ngồi xích đu (seat), tương tác đôi (action), vị trí múa trên sân khấu (stage: 0..9)
-function setMeta(list){for(const x of list??[]){if(x.identity?.name)network.identities.set(x.id,x.identity);else network.identities.delete(x.id);if(x.look)network.looks.set(x.id,x.look);else network.looks.delete(x.id);if(x.seat||x.action||x.stage!=null)network.meta.set(x.id,{seat:x.seat,action:x.action,actionFrom:x.actionFrom,stage:x.stage??null});else network.meta.delete(x.id);}window.dispatchEvent(new CustomEvent('school-stage'));}
+function setMeta(list){for(const x of list??[]){if(x.identity?.name)network.identities.set(x.id,x.identity);else network.identities.delete(x.id);if(x.look)network.looks.set(x.id,x.look);else network.looks.delete(x.id);if(x.seat||x.action||x.stage!=null)network.meta.set(x.id,{seat:x.seat,action:x.action,actionFrom:x.actionFrom,partnerSlot:x.partnerSlot,stage:x.stage??null});else network.meta.delete(x.id);}window.dispatchEvent(new CustomEvent('school-stage'));}
 let snapshotOffset=null;
 function onSnapshot(buffer){
  const stamp=new DataView(buffer).getUint32(1,true);snapshotOffset??=performance.now()-stamp;const at=stamp+snapshotOffset;
@@ -66,6 +67,7 @@ function onSnapshot(buffer){
 }
 
 export function Multiplayer(){
+ const hudPortal=useRef(document.body);
  const [,setVersion]=useState(0),[invite,setInvite]=useState(null),[notice,setNotice]=useState(null);
  const myProfile=useProfile();
  useEffect(()=>{if(myProfile)network.send({type:'profile',look:lookCode(myProfile),identity:characterIdentity(myProfile)});},[myProfile]); // đổi nhân vật → báo server
@@ -83,7 +85,7 @@ export function Multiplayer(){
     if(m.type==='bike-link'){if(m.driver==null)network.bikeLinks.delete(m.passenger);else network.bikeLinks.set(m.passenger,m.driver);}
     if(m.type==='welcome'){network.id=m.id;network.uid=m.uid;network.remotes.clear();network.meta.clear();network.looks.clear();network.identities.clear();setMeta(m.meta);const pf=getProfile();if(pf)network.send({type:'profile',look:lookCode(pf),identity:characterIdentity(pf)});bump();}
     if(m.type==='full'){full=true;setNotice(m.message);}
-    if(m.type==='gone'){for(const id of m.ids){network.remotes.delete(id);network.bikeLinks.delete(id);network.meta.delete(id);network.looks.delete(id);network.identities.delete(id);}bump();}
+    if(m.type==='gone'){for(const id of m.ids){network.remotes.delete(id);network.bikeLinks.delete(id);network.meta.delete(id);network.looks.delete(id);network.identities.delete(id);}setInvite(current=>current&&m.ids.includes(current.from)?null:current);bump();}
     if(m.type==='meta'){setMeta(m.list);bump();}
     if(m.type==='invite'){setInvite(m);clearTimeout(timer);timer=setTimeout(()=>setInvite(null),20000);}
     if(m.type==='notice'||m.type==='error'||m.type==='stage-full'){setNotice(m.message);setTimeout(()=>setNotice(null),4000);}
@@ -106,10 +108,18 @@ export function Multiplayer(){
   return()=>{exit();clearTimeout(timer);window.removeEventListener('pagehide',exit);window.removeEventListener('pageshow',resume);};
  },[]);
  const me=network.meta.get(network.id);
- const other=me?.seat&&[...network.meta].find(([id,x])=>id!==network.id&&x.seat?.swing===me.seat.swing);
+ const others=me?.seat?[...network.meta].filter(([id,x])=>id!==network.id&&sameSeat(x.seat,me.seat)):[];
  const labels={hand:'Nắm tay',lean:'Tựa đầu',kiss:'Hôn nhẹ'};
- const show=(me?.seat&&other)||me?.action||invite||notice;
- return <><Crowd/><Html {...SCREEN_HUD} style={{pointerEvents:'none'}}>{show&&<div style={{position:'absolute',right:20,bottom:20,background:'#fff9ed',padding:12,borderRadius:12,color:'#263e37',pointerEvents:'auto',maxWidth:330}}>{notice&&<p style={{margin:'0 0 6px',fontSize:13}}>{notice}</p>}{me?.seat&&other&&<div>{Object.entries(labels).map(([action,label])=><button key={action} disabled={!!me.action} onClick={()=>network.send({type:'invite',action})}>{label}</button>)}</div>}{me?.action&&<button onClick={()=>network.send({type:'stop'})}>Dừng tương tác</button>}{invite&&<div><p>Người bên cạnh mời: {labels[invite.action]}. Bạn đồng ý?</p><button onClick={()=>{network.send({type:'respond',id:invite.id,accept:true});setInvite(null)}}>Đồng ý</button><button onClick={()=>{network.send({type:'respond',id:invite.id,accept:false});setInvite(null)}}>Từ chối</button></div>}</div>}</Html></>;
+ const show=others.length>0||me?.action||invite||notice;
+ return <><Crowd/><Html {...SCREEN_HUD} portal={hudPortal} zIndexRange={[40,40]} style={{pointerEvents:'none'}}>{show&&<div className="seat-interactions">
+  {notice&&<p className="seat-notice">{notice}</p>}
+  {others.map(([id,other])=><div key={id} className="seat-person">
+   <strong>{network.identities.get(id)?.name??`Người chơi ${id}`}</strong>
+   <div className="seat-actions">{Object.entries(labels).map(([action,label])=><button key={action} disabled={!!me.action||!!other.action||!!invite} onClick={()=>network.send({type:'invite',action,to:id})}>{label}</button>)}</div>
+  </div>)}
+  {me?.action&&<button onClick={()=>network.send({type:'stop'})}>Dừng tương tác</button>}
+  {invite&&<div><p>{invite.name??'Người bên cạnh'} mời: {labels[invite.action]}. Bạn đồng ý?</p><div className="seat-actions"><button onClick={()=>{network.send({type:'respond',id:invite.id,accept:true});setInvite(null)}}>Đồng ý</button><button onClick={()=>{network.send({type:'respond',id:invite.id,accept:false});setInvite(null)}}>Từ chối</button></div></div>}
+ </div>}</Html></>;
 }
 
 // ---------------- Vẽ đám đông ----------------
@@ -118,6 +128,7 @@ export function Multiplayer(){
 //  - Vừa (< FAR_DIST): 1 InstancedMesh cho người đứng + 1 cho người ngồi — mỗi loại chỉ 1 lệnh vẽ cho mọi người.
 //  - Xa: hình khối đơn giản, 1 lệnh vẽ, không đổ bóng.
 const CAP=1100,DETAIL_MAX=16,DETAIL_DIST=26,FAR_DIST=55;
+const NAMEPLATE_MAX=32,NAMEPLATE_DIST=26;
 const COLORS={shirt:'#edf2ef',skin:'#dcad88',hair:'#232b32',pants:'#2c4059'};
 function part(geo,color,x,y,z,rx=0){
  if(rx)geo.rotateX(rx);geo.translate(x,y,z);
@@ -142,6 +153,8 @@ const yOffset=mode=>(mode&3)===0?-.83:mode&GROUND_FLAG?-1.55:-1.21;
 function Crowd(){
  const {camera}=useThree();
  const [detailed,setDetailed]=useState([]);
+ const [nameplates,setNameplates]=useState([]);
+ const nameplateKey=useRef('');
  const stand=useRef(),sit=useRef(),far=useRef(),detailKey=useRef(''),detailSet=useRef(new Set()),lastPick=useRef(0),ranked=useRef([]);
  const geo=useMemo(()=>({stand:avatarGeometry(false),sit:avatarGeometry(true),far:farGeometry()}),[]);
  const mat=useMemo(()=>new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),[]);
@@ -152,6 +165,8 @@ function Crowd(){
    if(!['gone','disconnected','welcome'].includes(e.detail?.type))return;
    const ids=[...detailSet.current].filter(id=>network.remotes.has(id));
    detailSet.current=new Set(ids);detailKey.current=ids.join(',');setDetailed(ids);
+   setNameplates(plates=>plates.filter(plate=>network.remotes.has(plate.id)));
+   nameplateKey.current='';
   };
   window.addEventListener('school-network',removeGone);
   return()=>window.removeEventListener('school-network',removeGone);
@@ -170,13 +185,26 @@ function Crowd(){
     const star=m?.stage!=null&&d2<90**2;if(d2<DETAIL_DIST**2||(m?.action&&d2<1600)||star)list.push([star?-2:m?.action?-1:d2,r.id]);}
    list.sort((a,b)=>a[0]-b[0]);stars=list.filter(x=>x[0]===-2).length;const ids=list.slice(0,DETAIL_MAX+Math.min(stars,10)).map(x=>x[1]).sort((a,b)=>a-b),key=ids.join(',');
    if(key!==detailKey.current){detailKey.current=key;detailSet.current=new Set(ids);setDetailed(ids);}
+   // Rank labels independently so stage performers cannot take the slots of nearby names.
+   const origin=localPlayer.ready?localPlayer:camera.position;
+   const nearby=[];
+   for(const r of network.remotes.values()){
+    const profile=network.identities.get(r.id);
+    if(!profile?.name)continue;
+    const distance=(r.x-origin.x)**2+(r.y-origin.y)**2+(r.z-origin.z)**2;
+    if(distance<NAMEPLATE_DIST**2)nearby.push({id:r.id,profile,distance});
+   }
+   nearby.sort((a,b)=>a.distance-b.distance||a.id-b.id);
+   const plates=nearby.slice(0,NAMEPLATE_MAX).sort((a,b)=>a.id-b.id);
+   const plateKey=JSON.stringify(plates.map(({id,profile})=>[id,profile]));
+   if(plateKey!==nameplateKey.current){nameplateKey.current=plateKey;setNameplates(plates);}
   }
-  let ns=0,nsit=0,nf=0;const set=detailSet.current;
+  let ns=0,nsit=0,nf=0,frameBeat;const set=detailSet.current;
   for(const r of network.remotes.values()){
    if(set.has(r.id))continue;
    const d2=(r.x-cx)**2+(r.z-cz)**2;
    // người đang nhảy ở xa: nhún + lắc người theo nhịp (rẻ, không cần khớp tay chân)
-   const dn=danceOf(r.mode),bb=dn?beatNow()+r.id*.13:0;
+   const dn=danceOf(r.mode),bb=dn?(frameBeat??=beatNow())+r.id*.13:0;
    dummy.position.set(r.x,r.y+yOffset(r.mode)-(dn?.07*Math.abs(Math.sin(Math.PI*bb)):0),r.z);dummy.rotation.set(0,r.yaw+(dn?.35*Math.sin(Math.PI*bb/2):0),dn?.06*Math.sin(Math.PI*bb):0);dummy.updateMatrix();
    if(d2>FAR_DIST**2){if(nf<CAP)far.current.setMatrixAt(nf++,dummy.matrix);}
    else if((r.mode&3)===0){if(ns<CAP)stand.current.setMatrixAt(ns++,dummy.matrix);}
@@ -189,7 +217,17 @@ function Crowd(){
   <instancedMesh ref={sit} args={[geo.sit,mat,CAP]} castShadow frustumCulled={false}/>
   <instancedMesh ref={far} args={[geo.far,mat,CAP]} frustumCulled={false}/>
   {detailed.map(id=><DetailedAvatar key={id} id={id}/>)}
+  {nameplates.map(({id,profile})=><RemoteNameplate key={id} id={id} profile={profile}/>)}
  </>;
+}
+
+function RemoteNameplate({id,profile}){
+ const anchor=useRef();
+ useFrame(()=>{
+  const player=network.remotes.get(id);
+  if(player&&anchor.current)anchor.current.position.set(player.x,player.y+(modeName(player.mode)==='stand'?1.35:.97),player.z);
+ });
+ return <group ref={anchor}><Nameplate profile={profile} height={0} limitDistance={false}/></group>;
 }
 
 // Nhân vật đầy đủ cho người ở gần — đọc vị trí trực tiếp mỗi khung hình, chỉ render lại khi đổi tư thế
@@ -201,10 +239,10 @@ function DetailedAvatar({id}){
   const driverId=network.bikeLinks.get(id),driver=driverId===network.id?localPlayer:network.remotes.get(driverId);
   const position=driver?rearSeat(driver):r;
   ref.current.position.set(position.x,position.y,position.z);ref.current.rotation.y=driver?.yaw??r.yaw;
-  const m=network.meta.get(id),look=network.looks.get(id)??0,key=`${r.mode}|${m?.action??''}|${m?.seat?.slot??''}|${m?.actionFrom??''}|${look}`;
-  if(key!==poseKey.current){poseKey.current=key;setPose({mode:modeName(r.mode),ground:!!(r.mode&GROUND_FLAG),seat:m?.seat,action:m?.action,initiator:m?.actionFrom===id,dance:danceOf(r.mode),wheelie:isWheelie(r.mode),look});}
+  const m=network.meta.get(id),look=network.looks.get(id)??0,key=`${r.mode}|${m?.action??''}|${m?.seat?.slot??''}|${m?.actionFrom??''}|${m?.partnerSlot??''}|${m?.seat?.slot??''}|${look}`;
+  if(key!==poseKey.current){poseKey.current=key;setPose({mode:modeName(r.mode),ground:!!(r.mode&GROUND_FLAG),seat:m?.seat,action:m?.action,initiator:m?.actionFrom===id,partnerSlot:m?.partnerSlot,dance:danceOf(r.mode),wheelie:isWheelie(r.mode),fire:hasBikeFire(r.mode),look});}
  });
- return <group ref={ref} name={`remote-player-${id}`}><Nameplate profile={network.identities.get(id)} height={pose&&pose.mode!=='stand'? .97:1.35}/>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id} look={pose.look} wheelie={pose.wheelie}/>:pose.action||pose.seat?<CoupleBody player={pose}/>:<PosedBody pose={pose}/>)}</group>;
+ return <group ref={ref} name={`remote-player-${id}`}>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id} look={pose.look} wheelie={pose.wheelie} fire={pose.fire}/>:pose.action||pose.seat?<CoupleBody player={pose}/>:<PosedBody pose={pose}/>)}</group>;
 }
 
 // Người chơi khác đứng / ngồi ở gần: đúng trang phục, gập đùi & gối theo tư thế ngồi ghế hoặc ngồi bệt
@@ -215,19 +253,19 @@ function PosedBody({pose}){
 }
 
 // Nhân vật đang nhảy (người chơi khác ở gần): cùng dáng với nhân vật của mình, có khớp vai/đùi/gối để nhảy đúng điệu
-function DancerBody({dance,seed,look=0,wheelie=false}){
+function DancerBody({dance,seed,look=0,wheelie=false,fire=false}){
  const tilt=useRef(0),wheeliePose=useRef({}),root=useRef(),pose=useMemo(()=>({}),[]);
  useFrame((_,dt)=>{if(!root.current)return;const b=beatNow()+(dance===4?0:seed*.07);dancePose(dance,b,pose);/* múa sân khấu: không lệch nhịp để cả nhóm đồng loạt */applyDance(root.current,pose,1);root.current.position.set(pose.sway,-.83+pose.y,0);tilt.current=THREE.MathUtils.damp(tilt.current,wheelie?1:0,7,Math.min(dt,.05));const wp=wheelieTransform(tilt.current,wheeliePose.current);root.current.position.y+=wp.y;root.current.position.z=wp.z;root.current.rotation.set(pose.pitch+wp.pitch,pose.yaw,pose.roll);});
  return <group ref={root} position={[0,-.83,0]}>
-  {dance===7&&<RidingBike/>/* người khác đang đi xe đạp điện */}
-  <AvatarBody look={look}/>
+  {dance===7&&<RidingBike fire={fire}/>/* người khác đang đi xe đạp điện */}
+  <AvatarBody look={look} fireHair={dance===7&&fire}/>
  </group>;
 }
 
 // Both local and remote paired poses use the same fully dressed avatar.
 export function CoupleBody({player:p}){
  const body=useRef(),joints=useRef({});
- const side=p.seat?.slot===0?1:-1,kiss=p.action==='kiss',lean=p.action==='lean'&&p.initiator;
+ const side=p.partnerSlot!=null?Math.sign(p.partnerSlot-p.seat.slot):(p.seat?.slot===0?1:-1),gap=p.partnerSlot!=null?Math.abs(p.partnerSlot-p.seat.slot)*.86:.86,kiss=p.action==='kiss',lean=p.action==='lean'&&p.initiator;
  React.useLayoutEffect(()=>{
   joints.current={};body.current?.traverse(o=>{
    if(o.name==='head')joints.current.head=o;
@@ -236,21 +274,21 @@ export function CoupleBody({player:p}){
    if(o.name==='arm'){
     const inner=p.action==='hand'&&Math.sign(o.position.x)===side;
     // Only the hands meet near the lap; shoulders and sleeves stay apart.
-    const reach=Math.asin(Math.max(0,(.37-Math.abs(o.position.x))/.52));
+    const reach=Math.asin(Math.min(1,Math.max(0,(gap/2-Math.abs(o.position.x))/.52)));
     o.rotation.set(inner?-.2:0,0,inner?side*reach:0);
    }
   });
- },[p.look,p.action,side]);
+ },[p.look,p.action,side,gap]);
  useFrame(({clock},dt)=>{
   const b=body.current,h=joints.current.head;if(!b||!h)return;
   const k=1-Math.exp(-8*Math.min(dt,.05)),sway=kiss?Math.sin(clock.elapsedTime*1.8)*.018:0;
-  b.position.x=THREE.MathUtils.lerp(b.position.x,kiss?side*.07:lean?side*.1:0,k);
+  b.position.x=THREE.MathUtils.lerp(b.position.x,kiss?side*Math.max(.07,gap/2-.36):lean?side*Math.max(.1,gap-.76):0,k);
   b.rotation.z=THREE.MathUtils.lerp(b.rotation.z,kiss?-side*.08+sway:lean?-side*.23:0,k);
   h.position.x=THREE.MathUtils.lerp(h.position.x,kiss?side*.07:lean?side*.12:0,k);
   h.rotation.y=THREE.MathUtils.lerp(h.rotation.y,kiss?side*1.35:lean?side*.15:0,k);
   h.rotation.z=THREE.MathUtils.lerp(h.rotation.z,kiss?-side*.08:lean?-side*.16:0,k);
  });
- return <group position={[0,-1.21,0]}><group ref={body} position={[0,.82,0]}><group position={[0,-.82,0]}><AvatarBody look={p.look??0} expression={kiss?'kiss':null} joinedSide={p.action==='hand'?side:0}/></group></group>{kiss&&p.seat?.slot===0&&<KissHearts/>}</group>;
+ return <group position={[0,-1.21,0]}><group ref={body} position={[0,.82,0]}><group position={[0,-.82,0]}><AvatarBody look={p.look??0} expression={kiss?'kiss':null} joinedSide={p.action==='hand'?side:0}/></group></group>{kiss&&(p.partnerSlot!=null?p.initiator:p.seat?.slot===0)&&<group scale={[side,1,1]}><KissHearts/></group>}</group>;
 }
 function KissHearts(){
  const refs=useRef([]),shape=useMemo(()=>{

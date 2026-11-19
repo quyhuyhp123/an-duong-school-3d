@@ -1,5 +1,8 @@
 import {characterIdentity} from '../src/characterIdentity.js';
 import {bikeActions} from './bikeActions.js';
+import {readFileSync} from 'node:fs';
+import {isSharedBench,sameSeat,seatCapacity,seatOffset} from '../src/seating.js';
+const sharedBenches=new Map(JSON.parse(readFileSync(new URL('../public/models/campus-data.json',import.meta.url),'utf8')).seats.filter(isSharedBench).map(s=>[s.id,s]));
 // Máy chủ thời gian thực cho một khuôn viên chung (500–800 người).
 //
 // Thiết kế:
@@ -58,7 +61,7 @@ export function attachMultiplayer(server,options={}){
  const broadcastText=text=>{for(const p of active)sendText(p,text);};
  function dropSlow(p){if(p.dropped)return;p.dropped=true;metrics.count('slowClientsDropped');try{p.socket.close(4008,'slow connection')}catch{}setTimeout(()=>p.socket.terminate(),2000).unref?.();}
 
- const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,actionFrom:p.actionFrom??null,stage:p.stageSlot,look:p.look||0,identity:p.identity??null});
+ const metaOf=p=>({id:p.id,seat:p.seat,action:p.action,actionFrom:p.actionFrom??null,partnerSlot:players.get(p.partner)?.seat?.slot??null,stage:p.stageSlot,look:p.look||0,identity:p.identity??null});
  function setPos(p,x,y,z,yaw,mode){
   p.position=[x,y,z];p.yaw=yaw;p.mode=mode;
   X[p.id]=x;Z[p.id]=z;
@@ -114,6 +117,15 @@ export function attachMultiplayer(server,options={}){
    if(!m||typeof m!=='object')return;
    if(bikeControl.handle(p,m))return;
    if(m.type==='chat'){postChat(p,m).then(error=>{if(error)send(p,{type:'chat-error',message:error})}).catch(()=>{});return;}
+   if(m.type==='sit'&&typeof m.id==='string'){
+    const s=sharedBenches.get(m.id);if(!s||p.seat||p.bikeDriver||p.stageSlot!=null)return;
+    if(Math.hypot(p.position[0]-s.position[0],p.position[2]-s.position[2])>3||Math.abs(p.position[1]-s.position[1])>2)return;
+    const slot=Array.from({length:seatCapacity(s)},(_,i)=>i).find(slot=>!active.some(q=>q.seat?.id===s.id&&q.seat.slot===slot));
+    if(slot===undefined){send(p,{type:'error',message:`Ghế đã đủ ${seatCapacity(s)} người, bạn chọn ghế khác nhé.`});return;}
+    end(p);p.seat={id:s.id,slot,yaw:s.yaw,exit:s.exit};const offset=seatOffset(s,slot);
+    setPos(p,s.position[0]+Math.cos(s.yaw)*offset,s.position[1],s.position[2]-Math.sin(s.yaw)*offset,s.yaw,modeCode('normal',false));metaChanged.add(p);
+    send(p,{type:'seated',seat:p.seat,position:p.position});return;
+   }
    if(m.type==='sit'&&[0,1].includes(m.swing)){
     const x=[16.5,23.5][m.swing];if(Math.hypot(p.position[0]-x,p.position[2]-11.6)>4||p.position[1]>2.5)return;
     const slot=[0,1].find(slot=>!active.some(q=>q.seat?.swing===m.swing&&q.seat.slot===slot));
@@ -127,7 +139,7 @@ export function attachMultiplayer(server,options={}){
     if(m.identity&&typeof m.identity==='object'){const identity=characterIdentity(m.identity);if(JSON.stringify(identity)!==JSON.stringify(p.identity)){p.identity=identity;metaChanged.add(p);}}
     return;
    }
-   if(m.type==='leave'){end(p);if(p.seat){p.seat=null;setPos(p,p.position[0],1.14,13.1,p.yaw,0);metaChanged.add(p);}if(p.stageSlot!=null){p.stageSlot=null;metaChanged.add(p);}return;}
+   if(m.type==='leave'){end(p);if(p.seat){const exit=p.seat.exit??[p.position[0],1.14,13.1];p.seat=null;setPos(p,...exit,p.yaw,0);metaChanged.add(p);}if(p.stageSlot!=null){p.stageSlot=null;metaChanged.add(p);}return;}
    // Múa trên sân khấu: 10 vị trí, mỗi vị trí một người; xếp vào ô trống gần nhất, đủ thì báo
    if(m.type==='perform'){
     if(p.seat||p.stageSlot!=null)return;
@@ -138,13 +150,13 @@ export function attachMultiplayer(server,options={}){
     send(p,{type:'performing',slot:k,position:[x,y,z]});return;
    }
    if(m.type==='invite'&&['hand','lean','kiss'].includes(m.action)&&p.seat&&!p.partner){
-    const q=active.find(q=>q.id!==p.id&&q.seat?.swing===p.seat.swing);
-    if(q&&!q.partner){for(const i of invites.values())if(i.from===p.id||i.to===p.id)return;const iid=randomUUID();invites.set(iid,{from:p.id,to:q.id,action:m.action,expires:Date.now()+20000});send(q,{type:'invite',id:iid,action:m.action});send(p,{type:'notice',message:'Đã gửi lời mời, đang chờ người kia đồng ý.'});}
+    const others=active.filter(q=>q.id!==p.id&&sameSeat(q.seat,p.seat)),q=Number.isInteger(m.to)?others.find(q=>q.id===m.to):others.length===1?others[0]:null;
+    if(q&&!q.partner){for(const i of invites.values())if([i.from,i.to].some(id=>id===p.id||id===q.id))return;const iid=randomUUID();invites.set(iid,{from:p.id,to:q.id,action:m.action,expires:Date.now()+20000});send(q,{type:'invite',id:iid,action:m.action,from:p.id,name:p.identity?.name??`Người chơi ${p.id}`});send(p,{type:'notice',message:'Đã gửi lời mời, đang chờ người kia đồng ý.'});}
     return;
    }
    if(m.type==='respond'){
     const i=invites.get(m.id);if(!i||i.to!==p.id)return;invites.delete(m.id);const q=players.get(i.from);
-    if(m.accept===true&&i.expires>Date.now()&&q?.seat&&p.seat?.swing===q.seat.swing&&!p.partner&&!q.partner){p.partner=q.id;q.partner=p.id;p.action=q.action=i.action;p.actionFrom=q.actionFrom=q.id;metaChanged.add(p);metaChanged.add(q);}
+    if(m.accept===true&&i.expires>Date.now()&&sameSeat(p.seat,q?.seat)&&!p.partner&&!q.partner){p.partner=q.id;q.partner=p.id;p.action=q.action=i.action;p.actionFrom=q.actionFrom=q.id;metaChanged.add(p);metaChanged.add(q);}
     else send(q,{type:'notice',message:'Lời mời đã bị từ chối hoặc hết hạn.'});
     return;
    }

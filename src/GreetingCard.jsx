@@ -9,10 +9,34 @@ function Flower({size=40,color='#d9485f',center='#f6c453'}){
  </svg>;
 }
 
+const REMINDER_KEY='school-greeting-reminder';
+const MINUTE=60000;
+const REMINDER_DURATION=8000;
+
 export function GreetingBadge({onOpen}){
- return <button className="greet-badge" onClick={onOpen} aria-label="Mở thiệp chúc mừng Ngày Nhà giáo Việt Nam 20/11">
+ const [reminder,setReminder]=useState(()=>{
+  try{return JSON.parse(localStorage.getItem(REMINDER_KEY))??{at:Date.now(),opened:false};}
+  catch{return {at:Date.now(),opened:false};}
+ });
+ const [showHint,setShowHint]=useState(false);
+ useEffect(()=>{
+  try{localStorage.setItem(REMINDER_KEY,JSON.stringify(reminder));}catch{}
+  const elapsed=Date.now()-reminder.at;
+  const visible=!reminder.dismissed&&elapsed<REMINDER_DURATION;
+  setShowHint(visible);
+  const hide=visible?setTimeout(()=>setShowHint(false),REMINDER_DURATION-elapsed):null;
+  const next=setTimeout(()=>setReminder({at:Date.now(),opened:reminder.opened}),Math.max(0,(reminder.opened?20:5)*MINUTE-elapsed));
+  return()=>{clearTimeout(hide);clearTimeout(next);};
+ },[reminder]);
+ function openGreeting(){
+  setShowHint(false);
+  setReminder({at:Date.now(),opened:true,dismissed:true});
+  onOpen();
+ }
+ return <button className="greet-badge" onClick={openGreeting} aria-label="Mở thiệp 20/11 để gửi lời chúc đến các thầy cô">
   <span className="greet-badge-flower"><Flower size={34}/></span>
   <span className="greet-badge-text"><b>20/11</b><small>Chúc mừng Ngày Nhà giáo</small></span>
+  {showHint&&<span className="greet-badge-hint"><span className="greet-pointing-hand" aria-hidden="true">👈</span>Gửi lời chúc đến các thầy cô</span>}
  </button>;
 }
 

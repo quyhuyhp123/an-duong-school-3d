@@ -20,6 +20,13 @@ header{background:#fffaf0e8;padding:14px 18px;border-radius:8px}
 .greet-badge-text{display:flex;flex-direction:column;line-height:1.1}
 .greet-badge-text b{font-family:'Playfair Display',Georgia,serif;font-size:22px;color:#b8324a}
 .greet-badge-text small{font-size:10px;letter-spacing:.06em;font-weight:600;color:#8b4a56}
+.hud-left .greet-badge{max-width:calc(100vw - 24px)}
+.greet-badge-flower,.greet-badge-text{flex-shrink:0}
+.greet-badge-hint{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:14px;background:#a72c47;color:#fff;font-size:12px;font-weight:700;line-height:1.3;animation:greet-hint-pulse 1.5s ease-in-out infinite}
+.greet-pointing-hand{font-size:19px;animation:greet-point 1.5s ease-in-out infinite}
+@keyframes greet-hint-pulse{50%{background:#ca3756;box-shadow:0 0 10px #ff638477}}
+@keyframes greet-point{50%{transform:translateX(-4px)}}
+@media(prefers-reduced-motion:reduce){.greet-badge-hint,.greet-pointing-hand{animation:none}}
 @keyframes greet-spin{to{transform:rotate(360deg)}}
 @media(max-width:850px){.greet-badge{top:172px;left:18px}}
 .greet-panel{width:min(640px,95vw)!important;padding:26px 26px 22px!important}
@@ -140,11 +147,20 @@ header{background:#fffaf0e8;padding:14px 18px;border-radius:8px}
 .ob-seg button.on{background:#8f2a22;color:#fff;font-weight:700}
 .ob-note{margin:0;color:#2f6b34;font-size:13px}
 .ob-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#4a3a2a}
-.ob-form input,.ob-form select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid #e3c98c;border-radius:8px;background:#fff}
+.ob-form input,.ob-form select{font:inherit;font-size:16px;font-weight:400;padding:10px 12px;border:1px solid #e3c98c;border-radius:8px;background:#fff}
 .ob-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ob-summary{margin:2px 0 0;color:#2f6b34;font-size:13px}
 .ob-fine{margin:4px 0 0;font-size:12px;color:#7a6a58}
 @media(max-width:700px){.ob-card{padding:22px 18px}.ob-grid{grid-template-columns:1fr}.ob-preview{height:240px}.ob-card h1{font-size:28px}}
+
+.seat-interactions{position:absolute;z-index:35;right:16px;bottom:20px;width:min(350px,calc(100vw - 32px));max-height:55dvh;overflow:auto;background:#fff9ed;padding:14px;border-radius:14px;color:#263e37;pointer-events:auto;box-shadow:0 8px 30px #0004}
+.seat-person{padding:10px 0;border-bottom:1px solid #ded8c8}.seat-person strong{display:block;font-size:14px;overflow-wrap:anywhere;margin-bottom:8px}
+.seat-actions{display:flex;flex-wrap:wrap;gap:6px}.seat-actions button{flex:1;min-width:76px;padding:10px 8px}.seat-actions button:disabled{opacity:.45;cursor:default}.seat-notice{font-size:13px;margin:0 0 6px}
+@media(pointer:coarse){.seat-interactions{bottom:180px;max-height:38dvh}}
+.greet-modal{z-index:45;backdrop-filter:none;-webkit-backdrop-filter:none;background:#10251fe8}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body,#root{width:100%;height:100%;overflow:hidden}
+@media(pointer:coarse){input,select,textarea{font-size:16px!important}}
 
 /* chọn màu áo dài / vest của giáo viên */
 .ob-swatches{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ob-swatches span{font-size:13px;font-weight:600;color:#4a3a2a;margin-right:4px}
@@ -201,6 +217,8 @@ header .seal{display:grid}
 .tc-small{width:46px;height:46px;font-size:20px;background:#141a2ecc}.tc-small.on{background:#f2a516e6}
 /* ---------- Điện thoại / màn nhỏ: mọi thứ gọn lại ---------- */
 @media (max-width:760px),(pointer:coarse){
+ .chat-fab{left:12px;top:var(--chat-top,200px);bottom:auto;z-index:4}
+ .chat-panel{left:12px;top:var(--chat-top,200px);bottom:auto;z-index:4;width:min(360px,calc(100vw - 24px));height:min(440px,calc(100dvh - var(--chat-top,200px) - 16px))}
  .hud-left{top:12px;left:12px;gap:8px}
  .hud-left header{padding:0;gap:10px}.hud-left header .seal{width:42px;height:42px;font-size:17px;background:#faf4e9e6}
  .hud-left h1{font-size:20px;margin:2px 0}.hud-left header small{font-size:8px;letter-spacing:1.4px}.hud-left header p{font-size:11px}

@@ -1,4 +1,4 @@
-import {WHEELIE_FLAG} from './bikeWheelie.js';
+import {WHEELIE_FLAG,BIKE_FIRE_FLAG} from './bikeWheelie.js';
 // Giao thức mạng nhị phân dùng chung cho server (Node) và trình duyệt.
 // Vị trí người chơi đi bằng gói nhị phân nhỏ; các sự kiện hiếm (ngồi, mời, chat…) vẫn là JSON.
 //
@@ -33,7 +33,7 @@ export function decodeMove(view){
  if(view.byteLength!==MOVE_BYTES||view.getUint8(0)!==MSG_MOVE)return null;
  const x=view.getInt16(1,true)/POS_SCALE,y=view.getInt16(3,true)/POS_SCALE,z=view.getInt16(5,true)/POS_SCALE;
  if(Math.abs(x)>POS_LIMIT||Math.abs(y)>POS_LIMIT||Math.abs(z)>POS_LIMIT)return null;
- const code=view.getUint8(8)&127,mode=((code>>3)&7)===7?code:code&~WHEELIE_FLAG;
+ const code=view.getUint8(8),mode=((code>>3)&7)===7?code:code&~(WHEELIE_FLAG|BIKE_FIRE_FLAG);
  return {x,y,z,yaw:view.getUint8(7),mode};
 }
 // Gọi onEntity(id,x,y,z,yawQ,mode) cho mỗi người trong gói; trả về thời điểm server gửi

@@ -1,6 +1,6 @@
 import {useProfile,lookCode} from './profile';
 import {characterIdentity,identityLabel} from './characterIdentity.js';
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {network} from './multiplayer';
 import {EVENT_INFO} from './live';
 import {isMuted,setMuted,onMuteChange} from './eventAudio';
@@ -22,6 +22,13 @@ const fmtTime=iso=>{try{return new Date(iso).toLocaleTimeString('vi-VN',{hour:'2
 
 // Cửa sổ trò chuyện chung (mọi người đang ở trường đều thấy)
 export function ChatPanel({messages,title}){
+ const [chatTop,setChatTop]=useState(200);
+ useLayoutEffect(()=>{
+  const hud=document.querySelector('.hud-left');if(!hud)return;
+  const place=()=>{const main=hud.closest('main');setChatTop(Math.ceil(hud.getBoundingClientRect().bottom-(main?.getBoundingClientRect().top??0)+8));};
+  const observer=new ResizeObserver(place);observer.observe(hud);window.addEventListener('resize',place);place();
+  return()=>{observer.disconnect();window.removeEventListener('resize',place);};
+ },[]);
  const [open,setOpen]=useState(false),[text,setText]=useState(''),[error,setError]=useState(null),[unread,setUnread]=useState(0);
  const profile=useProfile(),sender=identityLabel(profile);
  const list=useRef(),input=useRef(),seen=useRef(messages.length);
@@ -41,8 +48,8 @@ export function ChatPanel({messages,title}){
   if(!network.send({type:'chat',text:t})){setError('Chưa kết nối máy chủ.');setTimeout(()=>setError(null),3000);return;}
   setText('');
  }
- if(!open)return <button className="chat-fab" onClick={()=>{setOpen(true);setTimeout(()=>input.current?.focus(),0)}} aria-label="Mở trò chuyện chung">💬 <span>Trò chuyện</span>{unread>0&&<b className="chat-unread">{unread>99?'99+':unread}</b>}</button>;
- return <section className="chat-panel" aria-label="Trò chuyện chung">
+ if(!open)return <button className="chat-fab" style={{'--chat-top':`${chatTop}px`}} onClick={()=>{setOpen(true);setTimeout(()=>input.current?.focus(),0)}} aria-label="Mở trò chuyện chung">💬 <span>Trò chuyện</span>{unread>0&&<b className="chat-unread">{unread>99?'99+':unread}</b>}</button>;
+ return <section className="chat-panel" style={{'--chat-top':`${chatTop}px`}} aria-label="Trò chuyện chung">
   <header><div><b>{title}</b><small>{network.online} người đang ở trường · Enter để mở</small></div><button onClick={()=>setOpen(false)} aria-label="Thu nhỏ">–</button></header>
   <div className="chat-list" ref={list}>
    {messages.length===0?<p className="chat-empty">Chưa có tin nhắn. Chào mọi người một câu nhé!</p>:

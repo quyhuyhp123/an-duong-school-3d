@@ -55,9 +55,10 @@ function outfit({teacher,female,winter,color}){
  return {top:'#edf2ef',sleeve:'#edf2ef',pants:'#2c4059',shoes:'#263039',tag:true,bag:true,skirt:female,skirtC:'#24365a'};
 }
 
-export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0}){
- const mergeRef=useRef();useMergeStatic(mergeRef,'joint',[look,eyes,expression,joinedSide]); // mỗi khớp còn vài khối thay vì hàng chục mảnh
+export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0,fireHair=false}){
+ const mergeRef=useRef();useMergeStatic(mergeRef,'joint',[look,eyes,expression,joinedSide,fireHair]); // mỗi khớp còn vài khối thay vì hàng chục mảnh
  const L=decodeLook(look),o=outfit(L);
+ const hair=fireHair?{c:'#ff6820',emissive:'#ff3608',emissiveIntensity:.85}:{c:HAIR};
  // Nữ: thân thon (eo nhỏ), vai hẹp, tay chân mảnh; tóc dài buộc nơ; môi hồng; học sinh nữ ba lô hồng, mùa hè mặc chân váy xếp ly
  const F=L.female,torsoR=F?.205:.25,R=torsoR+.007,armX=F?.285:.32,armR=F?.068:.085,thighR=F?.088:.105,shinR=F?.078:.09;
  const legC=F&&o.skirt?SKIN:o.pants,bagC=F?(L.winter?'#d9668f':'#f08bb0'):(L.winter?'#2a2a2a':'#58766e');
@@ -98,10 +99,10 @@ export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0}){
   {/* đầu, tóc */}
   <group name="head" position={[0,1.67,0]}><group position={[0,-1.67,0]}>
   <mesh castShadow position={[0,1.67,0]}><sphereGeometry args={[F?.198:.225,20,16]}/><M c={SKIN}/></mesh>
-  <mesh castShadow position={[0,F?1.775:1.79,-.025]}><sphereGeometry args={[F?.206:.23,20,12,0,Math.PI*2,0,Math.PI*.58]}/><M c={HAIR}/></mesh>
+  <mesh castShadow position={[0,F?1.775:1.79,-.025]}><sphereGeometry args={[F?.206:.23,20,12,0,Math.PI*2,0,Math.PI*.58]}/><M {...hair}/></mesh>
   {F&&<>
    {/* tóc đen phủ kín nửa sau đầu (không lộ da gáy), tóc dài xoã sau lưng, 2 lọn hai bên má, nơ buộc tóc */}
-   <mesh castShadow position={[0,1.67,-.012]}><sphereGeometry args={[.206,20,16,Math.PI,Math.PI,0,Math.PI*.86]}/><M c={HAIR}/></mesh>
+   <mesh castShadow position={[0,1.67,-.012]}><sphereGeometry args={[.206,20,16,Math.PI,Math.PI,0,Math.PI*.86]}/><M {...hair}/></mesh>
    {/* học sinh nữ: kẹp tóc hình bông hoa (5 cánh hồng, nhuỵ vàng) đính trên tóc, phía trước đỉnh đầu */}
    {!L.teacher&&<group position={[-.095,1.835,.115]} rotation={[-.9,-.6,0]}>
     {Array.from({length:5},(_,i)=>{const a=i/5*Math.PI*2;return <mesh key={i} position={[Math.cos(a)*.034,Math.sin(a)*.034,0]} scale={[1,1,.5]}><sphereGeometry args={[.026,10,8]}/><M c="#ff6fa5"/></mesh>;})}
@@ -110,12 +111,12 @@ export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0}){
    {/* học sinh nữ: 2 bím tóc tết vắt ra trước vai, buộc chun cuối bím (cô giáo không có) */}
    {!L.teacher&&[-1,1].map(s=><group key={'b'+s}>
     {[[.17,1.56,.03],[.185,1.49,.09],[.18,1.42,.15],[.165,1.35,.195],[.155,1.28,.215],[.15,1.21,.222],[.148,1.14,.226]].map(([x,y,z],i)=>
-     <mesh key={i} position={[s*(x+(i%2?.012:-.012)),y,z]} rotation={[.3,0,(i%2?1:-1)*.5]}><sphereGeometry args={[.042-i*.002,10,8]}/><M c={HAIR}/></mesh>)}
+     <mesh key={i} position={[s*(x+(i%2?.012:-.012)),y,z]} rotation={[.3,0,(i%2?1:-1)*.5]}><sphereGeometry args={[.042-i*.002,10,8]}/><M {...hair}/></mesh>)}
     <mesh position={[s*.148,1.095,.226]}><sphereGeometry args={[.022,8,8]}/><M c={L.teacher?'#f6c344':'#e75480'}/></mesh>
    </group>)}
-   <mesh castShadow position={[0,1.45,-.15]}><boxGeometry args={[.36,.62,.09]}/><M c={HAIR}/></mesh>
-   <mesh position={[0,1.14,-.15]}><sphereGeometry args={[.18,12,8,0,Math.PI*2,Math.PI/2,Math.PI/2]}/><M c={HAIR}/></mesh>
-   {[-1,1].map(s=><mesh key={s} position={[s*.18,1.6,-.03]}><boxGeometry args={[.05,.3,.14]}/><M c={HAIR}/></mesh>)}
+   <mesh castShadow position={[0,1.45,-.15]}><boxGeometry args={[.36,.62,.09]}/><M {...hair}/></mesh>
+   <mesh position={[0,1.14,-.15]}><sphereGeometry args={[.18,12,8,0,Math.PI*2,Math.PI/2,Math.PI/2]}/><M {...hair}/></mesh>
+   {[-1,1].map(s=><mesh key={s} position={[s*.18,1.6,-.03]}><boxGeometry args={[.05,.3,.14]}/><M {...hair}/></mesh>)}
    <group position={[0,1.73,-.22]}>
     {[-1,1].map(s=><mesh key={s} position={[s*.06,0,0]} rotation={[0,0,s*.6]}><coneGeometry args={[.05,.1,8]}/><M c={L.teacher?'#f6c344':'#e75480'}/></mesh>)}
     <mesh><sphereGeometry args={[.025,8,8]}/><M c={L.teacher?'#f6c344':'#e75480'}/></mesh>
