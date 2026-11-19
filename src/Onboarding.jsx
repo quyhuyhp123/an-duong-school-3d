@@ -20,8 +20,7 @@ function Welcome({onNext,onContinue}){
    <p><b>🌸 20/11:</b> mở thiệp chúc mừng ở góc trái, gửi lời chúc tới thầy cô và xem sổ lời chúc của mọi người.</p>
    <p><b>💃 Sân khấu:</b> bước lên sân khấu ngoài sân hoặc trong nhà đa năng, nhấn <Key>F</Key> để thay chỗ một vũ công áo dài (mỗi nơi 10 chỗ).</p>
    <p><b>🪑 Ngồi nghỉ:</b> <Key>F</Key> ở ghế đá, xích đu, ghế nhà đa năng (bàn đại biểu dành cho thầy cô), bàn họp phòng giáo viên dãy B (chỉ thầy cô), ghế quán xôi.</p>
-   <p><b>💻 Phòng tin học:</b> lên tầng 3 dãy B, <Key>F</Key> ngồi vào máy rồi nhấn <Key>G</Key> chơi game (Máy bay giấy, Ghép số, Xếp nhà cao tầng) — bảng xếp hạng chung mỗi ngày.</p>
-   <p><b>🚲 Xe đạp điện:</b> <Key>F</Key> lấy xe trong nhà xe, đi ra cổng phụ rồi quay về đỗ vào ô trống.</p>
+   <p>🚲 Chọn đi xe đạp hãy gửi xe trong nhà xe nhé.</p>
    <p><b>🏫 Cổng trường:</b> bác bảo vệ & đội Sao đỏ chào đón (6:00–8:00, 13:00–13:30) — đi muộn sẽ bị hỏi đấy! Bên kia đường có quán bánh mì, quán nước, quán xôi.</p>
    <p><b>🌙 Buổi tối:</b> trời tối theo giờ thật; có đêm nhạc DJ hoặc lửa trại do nhà trường tổ chức, kèm phòng trò chuyện chung.</p>
   </div>

@@ -1,12 +1,13 @@
-// Trống trường: cứ đúng mỗi 15 phút theo giờ thật (xx:00, xx:15, xx:30, xx:45) trống ở gầm cầu thang dãy B đánh 1 hồi.
+// Trống trường: mỗi 15 phút, chỉ 08:00–12:00 và 14:00–17:00 theo giờ Việt Nam (kể cả mốc 12:00 và 17:00).
 //  - Âm thanh tổng hợp bằng Web Audio (tiếng "tùng" trầm của trống da, không dùng file).
 //  - Một hồi: dồn nhanh dần (hồi trống) rồi 3 tiếng "tùng… tùng… tùng" chắc.
 //  - Đứng gần trống nghe to, xa vẫn nghe được (cả sân trường); tuân theo nút tắt tiếng chung của trang.
 //  - Hiện dòng thông báo nhỏ "🥁 Tùng! Tùng! Tùng!" khi trống đánh.
-//  Thử ngay: thêm ?drum vào địa chỉ trang → trống đánh sau 3 giây.
+//  Thử ngay: thêm ?drum vào địa chỉ trang → trống đánh sau 3 giây nếu đang trong khung giờ cho phép.
 import React,{useEffect,useState} from 'react';
 import {isMuted} from './eventAudio';
 import {localPlayer} from './localPlayer';
+import {DRUM_TIME_ZONE,isSchoolDrumTime} from './drumSchedule';
 
 export const DRUM_POS=[-36.45,1,-20.96];   // toạ độ three.js của trống (khớp school_drum trong scripts/interiors.py)
 const QUARTER=15*60*1000;
@@ -49,11 +50,11 @@ export function SchoolDrum(){
  useEffect(()=>{
   unlockOnce();
   let timer,hide;
-  const ring=()=>{if(document.visibilityState==='visible'){const dur=playDrumRoll();setShow(true);clearTimeout(hide);hide=setTimeout(()=>setShow(false),Math.max(4000,dur*1000));}schedule();};
+  const ring=()=>{if(isSchoolDrumTime()&&document.visibilityState==='visible'){const dur=playDrumRoll();setShow(true);clearTimeout(hide);hide=setTimeout(()=>setShow(false),Math.max(4000,dur*1000));}schedule();};
   // hẹn tới mốc 15 phút kế tiếp theo đồng hồ thật (mọi người chơi nghe cùng lúc)
   const schedule=()=>{const now=Date.now();timer=setTimeout(ring,QUARTER-now%QUARTER+200);};
   if(/[?&]drum(&|=|$)/.test(location.search))timer=setTimeout(ring,3000);else schedule();
   return()=>{clearTimeout(timer);clearTimeout(hide);};
  },[]);
- return show?<div className="drum-toast" role="status">🥁 Tùng! Tùng! Tùng! <small>Trống trường báo {new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</small></div>:null;
+ return show?<div className="drum-toast" role="status">🥁 Tùng! Tùng! Tùng! <small>Trống trường báo {new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',timeZone:DRUM_TIME_ZONE})}</small></div>:null;
 }

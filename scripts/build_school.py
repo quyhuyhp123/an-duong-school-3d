@@ -986,7 +986,11 @@ for y in [-22,-31,-40]:
 # Lối đi lát gạch dọc phía đông (sát dãy B) và toàn bộ phần còn lại; góc tây bắc (chỗ nhà vệ sinh cũ) cũng lát gạch.
 cube('West annex paving',(-47.5,25.78,-.08),(11,50.45,.18),'tile',True)
 cube('Northwest corner paving',(-38.5,42.55,-.08),(9,16.9,.18),'tile',True)
-for y in range(2,51,3):cube('West annex grout',(-47.5,y,.016),(11,.018,.012),'grout')
+# Match the courtyard's two-metre square tiles, joint width and elevation.
+for x in range(-53,-41,2):cube('West annex longitudinal grout',(x,25.78,.018),(.018,50.45,.012),'grout')
+for y in range(1,51,2):cube('West annex transverse grout',(-47.5,y,.018),(11,.018,.012),'grout')
+for x in range(-43,-33,2):cube('Northwest corner longitudinal grout',(x,42.55,.018),(.018,16.9,.012),'grout')
+for y in range(35,51,2):cube('Northwest corner transverse grout',(-38.5,y,.018),(9,.018,.012),'grout')
 def small_tree(name,x,y):
     k=1.6   # to hơn trước ~1.6 lần
     cyl(name+' planter',(x,y,.22),.6*k,.44,'brick',18);cyl(name+' soil',(x,y,.45),.5*k,.05,'grass',18)
