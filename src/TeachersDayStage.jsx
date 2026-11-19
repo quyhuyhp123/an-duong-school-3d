@@ -12,6 +12,8 @@ import {network} from './multiplayer';
 import {dancePose,applyDance,STAGE_DANCE} from './dances';
 import {beatNow} from './eventAudio';
 import {useMergeStatic} from './mergeStatic';
+import {useLightSources} from './lightPool';
+const STAGE_LIGHTS=[-4.5,4.5].map(x=>({p:[x,5.6,-27.2],color:'#ffd9a0',power:()=>18,distance:16,decay:1.6}));   // đèn vàng ấm dưới mái sân khấu (bể đèn chung)
 
 // Toạ độ sân khấu (three.js): mặt sàn y=0.96, mép trước z=-26.5, phông nền z≈-32.07, trụ xanh x=±8 z=-27.5
 const STAGE_Y=.96,FRONT_Z=-26.5,BACKDROP_Z=-32.0;
@@ -234,12 +236,11 @@ export function TeachersDayStage({event}){
  const up=useMemo(()=>new THREE.Vector3(0,1,0),[]);
  const applyRod=useMemo(()=>(d,m)=>{const a=new THREE.Vector3(...m.from),b=new THREE.Vector3(...m.to),dir=b.clone().sub(a);d.position.copy(a).add(b).multiplyScalar(.5);d.quaternion.setFromUnitVectors(up,dir.clone().normalize());d.scale.set(1,dir.length(),1);d.rotation.setFromQuaternion(d.quaternion);},[up]);
  const applyBowl=useMemo(()=>(d,p)=>{d.position.set(...p);d.rotation.set(0,0,0);d.scale.setScalar(1);},[]);
- const balloonRef=useRef();
+ const balloonRef=useRef();useLightSources(STAGE_LIGHTS);
  return <group>
   <Backdrop/>
   <StageDancers event={event}/>
   {/* đèn vàng ấm dưới mái sân khấu — làm hoa và phông nổi bật khi trời tối */}
-  {[-4.5,4.5].map(x=><pointLight key={x} position={[x,5.6,-27.2]} color="#ffd9a0" intensity={18} distance={16} decay={1.6}/>)}
   <FairyLights/>
   <Bunting/>
   {/* hoa, lá, bóng bay, chân lẵng, giỏ: mỗi loại 1 lệnh vẽ */}

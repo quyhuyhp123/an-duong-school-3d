@@ -2,9 +2,11 @@ import React from 'react';
 import {RigidBody,CuboidCollider} from '@react-three/rapier';
 import {AvatarBody} from './Avatar';
 import {useNearVisible} from './useNearVisible';
+import {useLightSources} from './lightPool';
+const PHOTO_LIGHT=[{p:[33.5,2.7,44],color:'#fff3dc',power:()=>22,distance:8,decay:1.5}];   // đèn trần phòng photo (bể đèn chung)
 const Box=({p,s,c='#e4e8e9',...props})=><mesh position={p} castShadow receiveShadow {...props}><boxGeometry args={s}/><meshStandardMaterial color={c} roughness={.65}/></mesh>;
 export function PhotoRoom(){
- const visible=useNearVisible([33.5,0,44],35);
+ const visible=useNearVisible([33.5,0,44],35);useLightSources(PHOTO_LIGHT);
  return <><group ref={visible}>
   {/* Full-size copier against the rear wall, front facing the doorway. */}
   <group position={[32,.26,45.9]}>
@@ -59,7 +61,5 @@ export function PhotoRoom(){
   </group>
   <group position={[33.35,.26,45.6]} rotation={[0,-.5,0]}><AvatarBody look={1}/></group>
   <Box p={[33.5,3.18,44]} s={[1.2,.08,.3]} c="#fff6d4"/>
- </group>
- {/* đèn để NGOÀI nhóm ẩn/hiện theo khoảng cách: đèn bị ẩn/hiện làm đổi số đèn → biên dịch lại shader cả trường (giật) */}
- <pointLight position={[33.5,2.7,44]} color="#fff3dc" intensity={22} distance={8} decay={1.5}/><RigidBody type="fixed" colliders={false}><CuboidCollider position={[32,.79,45.9]} args={[.65,.53,.47]}/><CuboidCollider position={[33.35,1.1,45.6]} args={[.3,.84,.28]}/><CuboidCollider position={[35.95,.64,43.4]} args={[.425,.38,.925]}/></RigidBody></>;
+ </group><RigidBody type="fixed" colliders={false}><CuboidCollider position={[32,.79,45.9]} args={[.65,.53,.47]}/><CuboidCollider position={[33.35,1.1,45.6]} args={[.3,.84,.28]}/><CuboidCollider position={[35.95,.64,43.4]} args={[.425,.38,.925]}/></RigidBody></>;
 }

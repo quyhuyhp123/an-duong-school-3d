@@ -27,6 +27,9 @@ import {CourtyardLamps,ParkingLights,useLitClassrooms} from './NightLights';
 import {WallMurals} from './Murals';
 import {ParkingGuard} from './ParkingGuard';
 import {PhotoRoom} from './PhotoRoom';
+import {PondFish} from './PondFish';
+import {LightPool} from './lightPool';
+import {Clouds} from './Clouds';
 import {StreetLights} from './StreetLights';
 import {GateGreeters} from './GateGreeters';
 import {FlowerPots} from './FlowerPots';
@@ -40,7 +43,7 @@ import {AvatarBody} from './Avatar';
 import {touch} from './device';
 import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='mentor-sign-91';
+export const MODEL_VERSION='koi-pond-93';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);
@@ -292,4 +295,4 @@ export const World=memo(function World(props){const [boardEditing,setBoardEditin
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
  const classroom=useMemo(()=>classroomLayout(data.rooms??[]),[data]);
  const playerData=useMemo(()=>({...data,seats:[...(data.seats??[]),...classroom.seats,...HALL_SEATS,...SHOP_SEATS,...(props.event==='campfire'?CAMPFIRE_SEATS:[])]}),[data,props.event,classroom]);
- return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}><StaticColliders colliders={data.colliders}/></RigidBody><TeachersDayStage event={props.event}/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><Canteen/><PhotoRoom/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});
+ return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}><StaticColliders colliders={data.colliders}/></RigidBody><TeachersDayStage event={props.event}/><LightPool/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><Canteen/><PhotoRoom/><PondFish/><Clouds/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});

@@ -500,18 +500,71 @@ for x in range(-32,-3,2):cube('Walkway grout',(x,-34.5,.073),(.018,3,.012),'grou
 for y in [-36,-34,-33]:cube('Walkway transverse grout',(-18,y,.073),(28,.018,.012),'grout')
 places.append({'id':'water-house','label':'Nhà lấy nước','position':[-27.9,.98,2.2]}) # trước cửa nhà nước
 
-# Rock garden and fountain stand in front of the remaining left classroom wing.
-cyl('Fountain basin rim',(-23,14,.34),2.45,.68,'stone',32)
-cyl('Fountain water',(-23,14,.7),2.17,.06,'water',32)
-for dx,dy,r,h in [(-.75,-.25,.75,1.7),(.25,.35,.7,2.15),(.95,-.25,.55,1.35)]:
-    cyl('Rock garden island',(-23+dx,14+dy,.85),r,.4,'rock',9)
-    rock=bpy.data.objects.new('Rock garden peak',bpy.data.meshes.new('Rock garden peak mesh'));bpy.context.collection.objects.link(rock)
-    verts=[(-r,-r,0),(r,-r,0),(r,r,0),(-r,r,0),(0,0,h)]
-    rock.data.from_pydata([(vx-23+dx,vy+14+dy,vz+1) for vx,vy,vz in verts],[],[(0,1,4),(1,2,4),(2,3,4),(3,0,4),(0,3,2,1)])
-    rock.data.materials.append(M['rock'])
-cyl('Fountain jet',(-23,14,1.95),.035,1.65,'water',10)
-ball('Fountain spray',(-23,14,2.8),(.23,.23,.3),'water')
-places.append({'id':'fountain','label':'Hòn non bộ · Đài phun nước','position':[-19,.98,-14]})
+# Hòn non bộ (làm lại): hồ bo tròn 2 đầu dài ~12 m, song song mặt tiền dãy B, tâm thẳng cầu thang giữa dãy B (y 19).
+#  - 3 cụm núi đá vôi nhiều tầng đặt đối xứng dọc trục hồ (cụm chính cao ở giữa, 2 cụm nhỏ 2 bên); chỉ có rêu xanh & cây nhỏ.
+#  - Mặt nước bán trong suốt trên đáy hồ sẫm màu: đàn cá koi (src/PondFish.jsx) bơi vòng quanh các cụm đá, nhìn thấy qua mặt nước.
+#  - Va chạm: khối vô hình ôm theo bờ hồ (xoá khỏi mô hình hiển thị) — không lội xuống nước.
+PX,PY0,PY1=-21.5,16.0,22.0         # tâm x; tâm 2 đầu tròn (nam, bắc) — hồ từ y 13 tới y 25 (khớp src/PondFish.jsx)
+PW,PRIM=2.6,3.0                    # bán kính mặt nước, bán kính mép ngoài bờ
+mat('pondfloor',(.06,.12,.11))
+pw_=mat('pondwater',(.18,.45,.52));_pp=next(n for n in pw_.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
+_pp.inputs['Alpha'].default_value=.58;_pp.inputs['Roughness'].default_value=.08
+try:pw_.surface_render_method='BLENDED'
+except Exception:pw_.blend_method='BLEND'
+def stadium(r,n=14):
+    pts=[(PX+r,PY0+(PY1-PY0)*k/6) for k in range(7)]
+    pts+=[(PX+r*math.cos(math.pi*k/n),PY1+r*math.sin(math.pi*k/n)) for k in range(1,n)]
+    pts+=[(PX-r,PY1-(PY1-PY0)*k/6) for k in range(7)]
+    pts+=[(PX+r*math.cos(math.pi+math.pi*k/n),PY0+r*math.sin(math.pi+math.pi*k/n)) for k in range(1,n)]
+    return pts
+def disc(name,r,z,m):
+    pts=stadium(r);me=bpy.data.meshes.new(name);me.from_pydata([(x,y,z) for x,y in pts],[],[tuple(range(len(pts)))]);me.materials.append(M[m])
+    o=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(o);return o
+def ring(name,r0,r1,z0,z1,m):
+    i_,o_=stadium(r0),stadium(r1);n=len(i_);v=[(x,y,z0) for x,y in o_]+[(x,y,z1) for x,y in o_]+[(x,y,z0) for x,y in i_]+[(x,y,z1) for x,y in i_]
+    f=[]
+    for k in range(n):
+        q=(k+1)%n;f+=[(k,q,n+q,n+k),(3*n+k,3*n+q,2*n+q,2*n+k),(n+k,n+q,3*n+q,3*n+k)]
+    me=bpy.data.meshes.new(name);me.from_pydata(v,[],f);me.materials.append(M[m]);o=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(o);return o
+disc('Pond floor',PW,.08,'pondfloor')
+ring('Pond rim wall',PW,PRIM,0,.5,'stone')
+ring('Pond rim coping',PW-.06,PRIM+.08,.5,.6,'trim')
+disc('Pond water',PW,.44,'pondwater')
+_seed=[20111]
+def rnd():
+    _seed[0]=(_seed[0]*1103515245+12345)%2147483648;return _seed[0]/2147483648
+def karst(name,x,y,r,h,m='rock',tiers=7,sides=9):
+    """Núi đá vôi: các vòng mặt cắt nhỏ dần, lệch tâm ngẫu nhiên, mép lởm chởm."""
+    v=[];f=[];cx,cy=x,y
+    for t in range(tiers):
+        fr=t/(tiers-1);rr=max(.03,r*(1-fr)**.8*(.85+.3*rnd()));cx+=(rnd()-.5)*.22*r;cy+=(rnd()-.5)*.22*r
+        for k in range(sides):
+            a=k*math.tau/sides+(rnd()-.5)*.35;j=.72+.5*rnd()
+            v.append((cx+rr*j*math.cos(a),cy+rr*j*math.sin(a),.2+h*fr))
+    for t in range(tiers-1):
+        for k in range(sides):f.append((t*sides+k,t*sides+(k+1)%sides,(t+1)*sides+(k+1)%sides,(t+1)*sides+k))
+    f.append(tuple(range(sides-1,-1,-1)));f.append(tuple(range((tiers-1)*sides,tiers*sides)))
+    me=bpy.data.meshes.new(name);me.from_pydata(v,[],f);me.materials.append(M[m]);o=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(o)
+    return (cx,cy)
+def bonsai(x,y,z,s=1):
+    beam('Pond bonsai trunk',(x,y,z),(x+.08*s,y+.05*s,z+.38*s),.035*s,'trunk')
+    for dx,dy,dz,rr in [(.12,.04,.4,.17),(-.06,.1,.34,.13),(.03,-.08,.46,.12)]:ball('Pond bonsai crown',(x+dx*s,y+dy*s,z+dz*s),(rr*s,rr*s,rr*.7*s),'leaf')
+# 3 cụm đá đối xứng: (tâm y, [(dx, dy, bán kính, cao, màu)])
+clusters=[(19.0,[(0,0,1.15,2.9,'rock'),(-.55,.75,.75,2.0,'stone'),(.6,-.7,.7,1.7,'rock'),(.5,.85,.5,1.2,'stone'),(-.6,-.8,.5,1.1,'stone')]),
+          (16.4,[(0,0,.85,1.75,'rock'),(.45,.4,.5,1.15,'stone'),(-.45,-.35,.45,.95,'stone')]),
+          (21.6,[(0,0,.85,1.75,'rock'),(-.45,-.4,.5,1.15,'stone'),(.45,.35,.45,.95,'stone')])]
+for cyc,peaks in clusters:
+    for i,(dx,dy,r,h,m) in enumerate(peaks):
+        karst('Pond rock peak',PX+dx,cyc+dy,r,h,m)
+        for k in range(2):ball('Pond moss',(PX+dx+(rnd()-.5)*r,cyc+dy+(rnd()-.5)*r,.35+h*(.25+.3*k)),(.16,.16,.08),'leaflight')
+    bonsai(PX+.35,cyc-.2,.2+peaks[0][3]*.55,1.2 if cyc==19.0 else .9)
+    bonsai(PX-.4,cyc+.3,.2+peaks[0][3]*.35,.7)   # thêm 1 cây nhỏ thấp phía bên kia
+# va chạm vô hình ôm bờ hồ (cao 1.1 m: không nhảy xuống nước)
+cube('Pond collider',(PX,(PY0+PY1)/2,.55),(2*PRIM,PY1-PY0,1.1),'stone',True)
+for yc,sg in [(PY0,-1),(PY1,1)]:
+    cube('Pond collider',(PX,yc+sg*PRIM*.45,.55),(2*PRIM*.92,PRIM*.9,1.1),'stone',True)
+    cube('Pond collider',(PX,yc+sg*PRIM*.85,.55),(2*PRIM*.55,PRIM*.3,1.1),'stone',True)
+places.append({'id':'fountain','label':'Hòn non bộ · Hồ cá','position':[-16.8,.98,-19]})
 
 gate_before=set(bpy.data.objects)
 # Main entrance reconstructed from the user's real gate photograph.
@@ -1098,7 +1151,7 @@ for pot in list(bpy.data.objects):
         cube('Planter support collider',tuple(pot.location),(w,d,height),'grass',True)
 export_campus_data()
 # khung va chạm của lan can nhà xe chỉ dùng cho dữ liệu va chạm, không đưa vào mô hình hiển thị
-for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or 'Stair rail collider' in o.name or o.name.startswith(('Bench collider','Lounge chair collider','School drum collider','Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
+for ob in [o for o in bpy.data.objects if ('Stair top guard rail collider' in o.name or 'Stair rail collider' in o.name or o.name.startswith(('Pond collider','Bench collider','Lounge chair collider','School drum collider','Bike shed railing collider','Hall gallery rail collider','Planter support collider')))]:bpy.data.objects.remove(ob,do_unlink=True)
 
 # Merge static meshes by material for a small GLB and fewer draw calls on the web.
 fonts=[o for o in bpy.context.scene.objects if o.type=='FONT']

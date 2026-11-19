@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import {nightFactor} from './DayCycle';
 import {IS_TOUCH} from './device';
 import {useMergeStatic} from './mergeStatic';
+import {useLightSources} from './lightPool';
 
 // 6 cột đèn theo các điểm khoanh trên bản đồ (toạ độ x, z; mặt sân y ≈ 0)
 export const LAMP_POSTS=[
@@ -37,18 +38,21 @@ export const LAMP_POSTS=[
 // Hai bộ đèn treo dưới nóc nhà kính, chiếu xuống các luống cây và lối ngang.
 const STEAM_LAMPS=[[-48.5,3.85,-38.2],[-48.5,3.85,-47]];
 const WARM='#ffd9a0';
+const PARKING_POSITIONS=[...[-28,-16,-4,8,16].flatMap(z=>[[47.5,2.9,z],[47.5,6.6,z]]),[36.5,2.7,14.7]];
+// ánh sáng thật lấy từ bể đèn chung (src/lightPool.jsx) — chỉ những đèn gần camera mới chiếu sáng thật
+const PARKING_SOURCES=PARKING_POSITIONS.map(([x,y,z])=>({p:[x,y-.15,z],color:WARM,power:()=>22*nightFactor(),distance:14,decay:1.7}));
 export function ParkingLights(){
- const refs=useRef([]),material=useMemo(()=>new THREE.MeshStandardMaterial({color:'#fff4d4',emissive:WARM,emissiveIntensity:0}),[]);
+ const material=useMemo(()=>new THREE.MeshStandardMaterial({color:'#fff4d4',emissive:WARM,emissiveIntensity:0}),[]),last=useRef(-1);
  useEffect(()=>()=>material.dispose(),[material]);
- useFrame(()=>{const n=nightFactor();material.emissiveIntensity=2*n;refs.current.forEach(l=>{if(l)l.intensity=22*n;});});
- const positions=[...[-28,-16,-4,8,16].flatMap(z=>[[47.5,2.9,z],[47.5,6.6,z]]),[36.5,2.7,14.7]];
- return <group>{positions.map(([x,y,z],i)=><group key={i} position={[x,y,z]}><mesh material={material}><boxGeometry args={[1.4,.08,.25]}/></mesh><pointLight ref={l=>refs.current[i]=l} position={[0,-.15,0]} color={WARM} intensity={0} distance={14} decay={1.7}/></group>)}</group>;
+ useLightSources(PARKING_SOURCES);
+ useFrame(({clock})=>{if(clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=clock.elapsedTime;material.emissiveIntensity=2*nightFactor();});
+ return <group>{PARKING_POSITIONS.map(([x,y,z],i)=><group key={i} position={[x,y,z]}><mesh material={material}><boxGeometry args={[1.4,.08,.25]}/></mesh></group>)}</group>;
 }
 const GATE_LAMPS=[-7,-3.5,3.5,7].map(x=>[x,Math.abs(x)>5?4.7:5.55,47.8]);
-// Mỗi đèn điểm làm MỌI bề mặt trong cảnh phải tính thêm ánh sáng (kể cả khi tắt) → chỉ giữ vài đèn thật, dời tới các
-// cột đèn gần camera nhất (cập nhật 2 lần/giây). Cột ở xa vẫn sáng nhờ bóng đèn phát sáng + vầng sáng vẽ sẵn trên mặt sân.
-const LIGHT_POOL=IS_TOUCH?2:4;
+// Ánh sáng thật của cột đèn sân / đèn cổng / đèn nhà kính: đăng ký vào bể đèn chung (src/lightPool.jsx) — bể dời vài đèn thật
+// tới các nguồn gần camera nhất. Cột ở xa vẫn sáng nhờ bóng đèn phát sáng + vầng sáng vẽ sẵn trên mặt sân.
 const LIGHT_SPOTS=[...LAMP_POSTS.map(([x,z,y=0])=>({x,y:y+3.7,z,k:28,d:16})),...GATE_LAMPS.map(([x,y,z])=>({x,y:y-.3,z,k:22,d:12})),...STEAM_LAMPS.map(([x,y,z])=>({x,y:y-.15,z,k:32,d:12}))];
+const COURTYARD_SOURCES=LIGHT_SPOTS.map(s=>({p:[s.x,s.y,s.z],color:WARM,power:()=>s.k*nightFactor(),distance:s.d,decay:1.8}));
 
 function radialTexture(){
  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
@@ -57,7 +61,8 @@ function radialTexture(){
 }
 
 export function CourtyardLamps(){
- const lights=useRef([]),last=useRef(-1);
+ const last=useRef(-1);
+ useLightSources(COURTYARD_SOURCES);
  const res=useMemo(()=>{
   const glow=radialTexture();
   return {glow,
@@ -72,10 +77,8 @@ export function CourtyardLamps(){
  // Cập nhật theo giờ (nửa giây/lần là đủ — trời tối dần rất chậm)
  useFrame(state=>{
   if(state.clock.elapsedTime-last.current<.5&&last.current>=0)return;last.current=state.clock.elapsedTime;
-  const n=nightFactor(),c=state.camera.position;
+  const n=nightFactor();
   res.bulb.emissiveIntensity=2.4*n;res.pool.opacity=.55*n;res.halo.opacity=.85*n;
-  const near=n>.01?[...LIGHT_SPOTS].sort((a,b)=>((a.x-c.x)**2+(a.z-c.z)**2)-((b.x-c.x)**2+(b.z-c.z)**2)):[];
-  lights.current.forEach((l,i)=>{if(!l)return;const s=near[i];if(s){l.position.set(s.x,s.y,s.z);l.distance=s.d;l.intensity=s.k*n;}else l.intensity=0;});
  });
  const lampsRef=useRef();useMergeStatic(lampsRef,'deep'); // ~290 mảnh → vài khối (cùng hình ảnh)
  return <group ref={lampsRef}>
@@ -107,7 +110,6 @@ export function CourtyardLamps(){
    <sprite material={res.halo} position={[0,-.1,0]} scale={[2.2,1,1]}/>
    <mesh material={res.pool} position={[0,.085-y,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[9,9]}/></mesh>
   </group>)}
-  {Array.from({length:LIGHT_POOL},(_,i)=><pointLight key={'pool'+i} ref={el=>lights.current[i]=el} color={WARM} intensity={0} distance={16} decay={1.8}/>)}
   {/* không đi xuyên cột đèn */}
   <RigidBody type="fixed" colliders={false}>{LAMP_POSTS.map(([x,z,y=0],i)=><CylinderCollider key={i} args={[1.2,.24]} position={[x,1.2+y,z]}/>)}</RigidBody>
  </group>;

@@ -14,6 +14,7 @@ import {stageDancersVisible} from './stageSchedule';
 import {currentHour} from './DayCycle';
 import {useNearVisible} from './useNearVisible';
 import {useMergeStatic} from './mergeStatic';
+import {useLightSources} from './lightPool';
 
 const FLOOR=.1,STAGE_TOP=1.2,STAGE_X0=56.5,STAGE_X1=71.5,STAGE_FRONT=39.65,STAGE_BACK=45.15,STAGE_CX=64;
 const AISLE_X=64.5;                       // lối giữa thẳng cửa sau nhà
@@ -190,7 +191,30 @@ function HallDancers({event}){
  return <group ref={group}>{Array.from({length:10},(_,i)=><NpcDancer key={i} slot={10+i} look={DANCER_LOOKS[(i+3)%DANCER_LOOKS.length]} rot={Math.PI}/>)}</group>;
 }
 
+// ---------- Đèn trần nhà đa năng (bật cả ngày: mái che kín nên trong nhà tối) ----------
+// 12 bộ đèn tấm treo dưới trần (trần ~7 m): 3 hàng dọc theo chiều dài nhà × 4 hàng ngang. Ánh sáng thật lấy từ bể đèn chung
+// (src/lightPool.jsx): đứng trong nhà thì cả bể dời về đây; ở ngoài vẫn thấy đèn sáng nhờ mặt đèn phát sáng.
+const HALL_LAMPS=[57.8,64.5,71.2].flatMap(x=>[24,29.2,34.4,39.2].map(z=>[x,6.3,z]));
+const HALL_LIGHT_SOURCES=HALL_LAMPS.map(([x,y,z])=>({p:[x,y-.25,z],color:'#fff4e2',power:()=>15,distance:13,decay:1.4}));
+function HallLights(){
+ useLightSources(HALL_LIGHT_SOURCES);
+ const panel=useRef(),rod=useRef();
+ const res=useMemo(()=>({
+  panelGeo:new THREE.BoxGeometry(1.8,.08,.32),rodGeo:new THREE.CylinderGeometry(.012,.012,.7,5),
+  panelMat:new THREE.MeshStandardMaterial({color:'#fffaf0',emissive:'#fff1d6',emissiveIntensity:1.6,roughness:.3}),
+  rodMat:new THREE.MeshStandardMaterial({color:'#5d6468',metalness:.6,roughness:.4}),
+ }),[]);
+ useLayoutEffect(()=>{const o=new THREE.Object3D();
+  HALL_LAMPS.forEach(([x,y,z],i)=>{o.position.set(x,y,z);o.rotation.set(0,Math.PI/2,0);o.updateMatrix();panel.current.setMatrixAt(i,o.matrix);
+   [-.7,.7].forEach((d,k)=>{o.position.set(x,y+.37,z+d);o.rotation.set(0,0,0);o.updateMatrix();rod.current.setMatrixAt(i*2+k,o.matrix);});});
+  panel.current.instanceMatrix.needsUpdate=true;rod.current.instanceMatrix.needsUpdate=true;},[]);
+ return <>
+  <instancedMesh ref={panel} args={[res.panelGeo,res.panelMat,HALL_LAMPS.length]}/>
+  <instancedMesh ref={rod} args={[res.rodGeo,res.rodMat,HALL_LAMPS.length*2]}/>
+ </>;
+}
+
 export function HallStage({event}){
  const ref=useNearVisible([64.5,0,33.5],40); // chỉ vẽ khi camera trong / gần nhà đa năng (va chạm ghế, bàn vẫn luôn hoạt động)
- return <group ref={ref}><HallDecor/><TeacherTables/><HallChairs/><HallDancers event={event}/></group>;
+ return <group ref={ref}><HallLights/><HallDecor/><TeacherTables/><HallChairs/><HallDancers event={event}/></group>;
 }
