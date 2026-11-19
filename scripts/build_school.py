@@ -305,6 +305,8 @@ ys=[-31.125,-23.75,-16.375,-9]
 for row in [-3,5]:
     for i in range(3):
         midpoint=(ys[i]+ys[i+1])/2
+        if i >= 1:
+            midpoint -= .35  # Bring the middle pair closer to the next palm.
         for offset in [-1.55,1.55]:iron_bench(row,midpoint+offset,math.pi/2 if i%2==0 else -math.pi/2)
 
 # Three large shade trees at the courtyard positions marked in the reference.

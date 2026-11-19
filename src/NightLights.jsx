@@ -11,14 +11,14 @@ import {useLightSources} from './lightPool';
 // 6 cột đèn theo các điểm khoanh trên bản đồ (toạ độ x, z; mặt sân y ≈ 0)
 export const LAMP_POSTS=[
  [-25,6],        // góc vườn, cạnh dãy B
- [-3,10.5,.28],  // trên bồn cau trái, đối xứng hàng phải
- [5,10.5,.28],   // trên bồn cau phải, đầu hàng
+ [-3.95,10.25,0], // Beside the end of the left planter.
+ [5.95,10.25,0],  // Beside the end of the right planter.
  [25.5,1.5],     // cạnh dãy C
  [25.8,-30.5],   // góc dãy A – dãy C
  [-28,-30.5],    // góc sân giữa dãy A và B, cách mép hành lang
  [-32,32],      // góc vườn cạnh nhà gần cổng
- [-3,20,.28],    // giữa hàng cau trái
- [5,20,.28],    // trên bồn cau phải, giữa hàng
+ [-3.95,19.8,0], // Beside the left planter, clear of the benches.
+ [5.95,19.8,0],  // Beside the right planter, clear of the benches.
  [-3,32,.28],    // cuối hàng cau trái, phía cổng
  [5,32,.28],    // trên bồn cau phải, cuối hàng
  [29.7,34],     // chỉ dịch đèn dưới, thẳng với đèn trên
