@@ -140,6 +140,21 @@ test('The garden and flower pergola remain walkable',()=>{
   set([0,1,42]);go([0,.98,34],'from gate');go([-18,.98,32],'garden entry');go([-18,.98,20],'garden path');
   set([20,1,20]);go([20,.98,11],'flower pergola and swings');
 });
+test('Corner corridor railings are joined on upper floors, corridors still connect',()=>{
+  // góc dãy A ↔ dãy cánh (B tây, C đông): tầng 2, 3 có lan can liền — không bước ra mép sàn phía sân được; tầng 1 vẫn để hở
+  for(const s of [-1,1])for(const lv of [1,2]){
+    const y=lv*3.6+.98;
+    set([s*31.6,y,-35.6]);
+    let out=false;try{go([s*29.9,y,-33.2],'corner ledge');out=true;}catch{}
+    assert(!out,`corner railing gap at side ${s} floor ${lv+1}`);
+    set([s*28.6,y,-35.25]);go([s*33.4,y,-35.25],'along corridor front past the removed column');   // cột |x| 31.7 đã bỏ ở tầng 2, 3
+    set([s*33.2,y,-34.4]);let hole=false;try{go([s*34.6,y,-34.6],'class-side corner hole');hole=true;}catch{}   // ô sát tường lớp đầu dãy cánh
+    assert(!hole,`class-side corner hole at side ${s} floor ${lv+1}`);
+    set([s*31.6,y,-35.6]);go([s*25,y,-36.9],'along main corridor');   // vẫn đi dọc hành lang dãy A
+    set([s*31.6,y,-35.6]);go([s*32.8,y,-28],'into wing corridor');      // vẫn rẽ sang hành lang dãy cánh
+  }
+  set([-31.6,.98,-35.6]);go([-29.9,.98,-33.2],'ground floor corner stays open');
+});
 test('Stone and iron benches cannot be walked through, seats stay usable',()=>{
   const benches=data.seats.filter(s=>/^(bench|iron)-/.test(s.id));assert(benches.length>=18,'benches missing');
   for(const s of benches){

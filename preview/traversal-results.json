@@ -1,6 +1,6 @@
 {
   "rooms": 65,
-  "colliders": 2461,
+  "colliders": 2475,
   "results": [
     {
       "name": "Main staircase sits under the right motto bay with a wider corridor",
@@ -108,6 +108,10 @@
     },
     {
       "name": "The garden and flower pergola remain walkable",
+      "passed": true
+    },
+    {
+      "name": "Corner corridor railings are joined on upper floors, corridors still connect",
       "passed": true
     },
     {

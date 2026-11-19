@@ -98,7 +98,26 @@ for o in set(bpy.data.objects)-_b_before:
     o.data=_white[o.data.name]
 building('C - Dãy phải',36,13,42,3,-math.pi/2,False)
 for side in [-1,1]:
-    for floor in range(3):cube('Corner corridor connecting slab',(side*32,34.5,floor*3.6),(4.3,5,.2),'trim',True)
+    # tầng 1: tấm nối rộng như cũ; tầng 2, 3: chỉ lấp đúng khe giữa đầu hành lang dãy cánh (y 34) và sàn dãy A (y 34.9),
+    # từ mép ngoài hành lang cánh (|x| 30.85) tới đầu hồi dãy A (|x| 34) — không chìa gờ sàn ra ngoài lan can
+    for floor in range(3):
+        if floor==0:cube('Corner corridor connecting slab',(side*32,34.5,0),(4.3,5,.2),'trim',True)
+        else:cube('Corner corridor connecting slab',(side*32.425,34.45,floor*3.6),(3.15,1.0,.2),'trim',True)
+    # Nối lan can hành lang ở góc (tầng 2 & 3; tầng 1 để hở): lan can dãy A dừng ở |x| 29.5 (mép y 34.85),
+    # lan can dãy cánh dừng ở y 34 (mép |x| 30.85) → thêm đoạn chữ L cùng kích thước để 2 lan can liền nhau.
+    wing_m='bwhite' if side<0 else 'cream'
+    for floor in [1,2]:
+        z=floor*3.6
+        cube('Corner balcony link',(side*30.22,34.85,z+.52),(1.44,.18,.85),'cream',True)   # dọc mép dãy A: |x| 29.5 → 30.94
+        cube('Corner balcony link coping',(side*30.22,34.85,z+.99),(1.44,.3,.1),'brick')
+        cube('Corner balcony link',(side*30.85,34.47,z+.52),(.18,.94,.85),wing_m,True)     # dọc mép dãy cánh: y 34 → 34.94
+        cube('Corner balcony link coping',(side*30.85,34.47,z+.99),(.3,.94,.1),'brick')
+        # phía trong góc, sát lớp học: lan can cuối hành lang dãy A (|x| 34, từ y 34.85) kéo xuống y 34, rồi rẽ sang
+        # chạm tường lớp đầu dãy cánh (|x| 34.85) — trước đây hở 1 ô ~0.85 m nhìn thẳng xuống đất
+        cube('Corner class-side railing',(side*34,34.47,z+.52),(.18,.94,.85),'cream',True)
+        cube('Corner class-side railing coping',(side*34,34.47,z+.99),(.3,.94,.1),'brick')
+        cube('Corner class-side railing',(side*34.42,34,z+.52),(.86,.18,.85),wing_m,True)
+        cube('Corner class-side railing coping',(side*34.42,34,z+.99),(.86,.3,.1),'brick')
 
 # Blue ceremonial stage, the strongest landmark in the references.
 stage_objects_before=set(bpy.data.objects)
@@ -964,6 +983,15 @@ for bx,(by0,by1) in [(bx,seg) for bx in [GX0+1.3,GCX,GX1-1.8] for seg in [(GY0+1
         ball('Greenhouse plant',(bx+.28,y+.3,.8),(.26,.26,.29),'leaf' if k%2 else 'leaflight')
         if k%3==0:ball('Greenhouse tomato',(bx,y+.12,1.02),(.1,.1,.1),'tomato')
         if k%3==1:beam('Greenhouse stake',(bx,y,.52),(bx,y,1.6),.016,'wood')
+# Biển "Giáo viên hướng dẫn: Bùi Thị Nga" gắn mặt ngoài vách kính phía đông (bên trái cửa, giữa 2 trụ khung y 38.15–39.93),
+# quay ra phía người đi tới (hướng +x). Nền trắng viền xanh lá; chữ quá dài tự thu nhỏ cho vừa biển.
+SIGN_Y,SIGN_Z,SIGN_W=39.04,1.62,1.55
+cube('Greenhouse mentor sign frame',(GX1+.07,SIGN_Y,SIGN_Z),(.04,SIGN_W+.1,.92),'leaf')
+cube('Greenhouse mentor sign board',(GX1+.1,SIGN_Y,SIGN_Z),(.03,SIGN_W,.82),'benchwhite')
+for wording,dz,size,m in [('GIÁO VIÊN HƯỚNG DẪN',.17,.12,'brick'),('Bùi Thị Nga',-.13,.2,'leaf')]:
+    label=text('Greenhouse mentor sign text',wording,(GX1+.12,SIGN_Y,SIGN_Z+dz),size,m);label.rotation_euler.z=math.pi/2
+    bpy.context.view_layer.update()
+    if label.dimensions.x>SIGN_W-.16:label.scale.x*=(SIGN_W-.16)/label.dimensions.x
 # góc nghiên cứu: bàn làm việc với khay cây con, kệ thuỷ canh nhiều tầng, bồn nước
 cube('Greenhouse workbench',(GX1-.6,GY0+.7,.82),(1.0,1.6,.06),'wood',True)
 for dx,dy in [(-.4,-.7),(.4,-.7),(-.4,.7),(.4,.7)]:cube('Greenhouse bench leg',(GX1-.6+dx,GY0+.7+dy,.4),(.05,.05,.8),'metal')

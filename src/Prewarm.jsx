@@ -32,11 +32,15 @@ export function Prewarm({ready,pass=0,onProgress,onDone}){
    scene.traverse(o=>{const ms=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
     for(const m of ms)for(const k of Object.keys(m)){const t=m[k];if(t?.isTexture&&!seen.has(t)){seen.add(t);try{gl.initTexture(t);}catch{}}}});
    onProgress?.(.7);await frame();
+   // hiện lại NGAY trước khi vẽ thử: trong lúc chờ biên dịch, các cụm ở xa đã bị useNearVisible / lịch biểu diễn ẩn lại
+   // → nếu không, dữ liệu hình khối của chúng không được đưa lên card và sẽ nạp (giật) khi người chơi đi tới
+   for(const o of shown)o.visible=true;for(const o of culled)o.frustumCulled=false;
    try{gl.render(scene,camera);}catch(e){console.warn('[prewarm] render',e);}
    onProgress?.(.9);
    for(const o of shown)o.visible=false;for(const o of culled)o.frustumCulled=true;
    await frame();await frame();
    const info=gl.info;console.info(`[prewarm] ${info.programs?.length??'?'} shader, ${seen.size} texture, ${info.memory.geometries} khối hình — ${Math.round(performance.now()-t0)} ms`);
+   if(window.__three){const ids=new Set();scene.traverse(o=>{if(o.geometry)ids.add(o.geometry.uuid);});window.__prewarmGeoms=ids;}   // ?perf: công cụ đo xem khối hình nào xuất hiện sau bước chuẩn bị
    running.current=false;
    if(latest.current!==done.current){setTick(t=>t+1);return;}   // có yêu cầu lượt mới trong lúc đang chạy → chạy tiếp
    onProgress?.(1);onDone?.();
