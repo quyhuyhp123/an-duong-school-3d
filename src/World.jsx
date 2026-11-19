@@ -43,7 +43,7 @@ import {AvatarBody} from './Avatar';
 import {touch} from './device';
 import {useProfile,lookCode} from './profile';
 import {createController,moveCharacter,CHARACTER_HALF_HEIGHT,CHARACTER_RADIUS} from './character-controller';
-export const MODEL_VERSION='stem-paving-94';
+export const MODEL_VERSION='open-ground-corner-95';
 function GateLED(){
  const material=useRef();
  const texture=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,2048,128);ctx.fillStyle='#ff4933';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Arial';ctx.fillText('CHÀO MỪNG NGÀY NHÀ GIÁO VIỆT NAM 20/11',1024,64,1990);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[]);

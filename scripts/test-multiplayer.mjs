@@ -9,10 +9,10 @@ process.env.DATA_DIR=await mkdtemp(join(tmpdir(),'school-mp-'));
 const {attachMultiplayer}=await import('../server/multiplayer.js');
 const {encodeMove,decodeSnapshot}=await import('../src/protocol.js');
 
-const server=createServer(),wss=attachMultiplayer(server);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const server=createServer(),wss=attachMultiplayer(server,{heartbeatMs:100});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const clients=[];
-async function client(){
- const ws=new WebSocket(`ws://127.0.0.1:${server.address().port}/multiplayer`),messages=[],seen=new Map();
+async function client(options={}){
+ const ws=new WebSocket(`ws://127.0.0.1:${server.address().port}/multiplayer`,options),messages=[],seen=new Map();
  const c={ws,messages,seen,snapshots:0,send:m=>ws.send(JSON.stringify(m)),move:(x,y,z,yaw=0,mode=0)=>ws.send(Buffer.from(encodeMove(x,y,z,yaw,mode)))};
  ws.on('message',(raw,isBinary)=>{
   if(isBinary){c.snapshots++;decodeSnapshot(new DataView(raw.buffer,raw.byteOffset,raw.byteLength),(id,x,y,z,yaw,mode)=>seen.set(id,{x,y,z,mode,at:c.snapshots}));}
@@ -62,6 +62,11 @@ try{
  b.send({type:'leave'});await until(()=>!meta(c,a.id)?.action&&!meta(c,b.id)?.seat);
  c.send({type:'sit',swing:0});await until(()=>c.messages.find(m=>m.type==='seated'));
  const cid=c.id;c.ws.close();await until(()=>a.messages.some(m=>m.type==='gone'&&m.ids.includes(cid)));
+ // An unresponsive connection must be removed even without a normal close handshake.
+ const silent=await client({autoPong:false});
+ silent.move(16.5,1,13);await until(()=>a.seen.has(silent.id));
+ await until(()=>a.messages.some(m=>m.type==='gone'&&m.ids.includes(silent.id)),1000);
+ assert.equal(wss.players.has(silent.id),false,'heartbeat must remove the disconnected player');
  // Múa trên sân khấu: 10 vị trí độc quyền, người thứ 11 nhận "đầy", rời đi thì trả chỗ, mất kết nối cũng trả chỗ
  {
   const dancers=[];for(let i=0;i<11;i++)dancers.push(await client());

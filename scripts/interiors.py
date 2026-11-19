@@ -321,12 +321,14 @@ def building(name,cx,cy,length,floors,angle=0,arched=True):
         # Dãy A, tầng 2 & 3: đoạn mép hành lang không có ban công (|x| 29.5 → đầu hồi 34) là lối sang hành lang dãy cánh →
         # bỏ cột giữa đoạn này (|x| 31.7, đứng chắn lối đi) và thay 2 vòm nhỏ bằng 1 vòm liền. Tầng 1 giữ nguyên.
         open_bay=lambda xx:main and floor>0 and 29.5<abs(xx)<length/2-.05
+        # Ground-floor east corner: remove the two posts blocking the wing connection.
+        open_ground_corner=lambda xx:main and floor==0 and xx>29.5
         for xx in column_positions:
-            if open_bay(xx):continue
+            if open_bay(xx) or open_ground_corner(xx):continue
             cube(name+' column',(xx,-5.04,z+1.82),(.22,.28,3.42),'cream',True)
             cube(name+' capital',(xx,-5.04,z+3.1),(.38,.42,.16),'trim')
         for x,w in layout:
-            if open_bay(x):arch(name+' arcade',x,-5.04,z+2.72,w-.22,.48,.28,'trim');continue
+            if open_bay(x) or open_ground_corner(x):arch(name+' arcade',x,-5.04,z+2.72,w-.22,.48,.28,'trim');continue
             for xx in [x-w/4,x+w/4]:arch(name+' arcade',xx,-5.04,z+2.72,w/2-.22,.48,.28,'trim')
         if main:
             for xx in [stair_left,stair_right]:

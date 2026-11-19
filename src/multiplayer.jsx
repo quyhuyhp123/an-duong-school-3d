@@ -76,6 +76,7 @@ export function Multiplayer(){
    const ws=new WebSocket(websocketUrl());ws.binaryType='arraybuffer';network.socket=ws;let full=false;
    ws.onopen=()=>{attempt=0;network.lastMove=null;snapshotOffset=null;};
    ws.onmessage=e=>{
+    if(network.socket!==ws)return;
     if(typeof e.data!=='string'){onSnapshot(e.data);return;}
     const m=JSON.parse(e.data);
     if(m.type==='bike-links')network.bikeLinks=new Map(m.links);
@@ -90,6 +91,7 @@ export function Multiplayer(){
     window.dispatchEvent(new CustomEvent('school-network',{detail:m}));
    };
    ws.onclose=()=>{
+    if(network.socket!==ws)return;
     network.id=null;network.uid=null;network.identities.clear();network.bikeLinks.clear();network.remotes.clear();network.meta.clear();setInvite(null);bump();
     window.dispatchEvent(new CustomEvent('school-network',{detail:{type:'disconnected'}}));
     // Kết nối lại với độ trễ tăng dần + ngẫu nhiên để 500 người không cùng ập vào một lúc khi server khởi động lại
@@ -97,7 +99,11 @@ export function Multiplayer(){
    };
   }
   connect();
-  return()=>{closed=true;clearTimeout(retry);clearTimeout(timer);network.socket?.close()};
+  const exit=()=>{closed=true;clearTimeout(retry);network.socket?.close();};
+  const resume=()=>{if(closed){closed=false;connect();}};
+  window.addEventListener('pagehide',exit);
+  window.addEventListener('pageshow',resume);
+  return()=>{exit();clearTimeout(timer);window.removeEventListener('pagehide',exit);window.removeEventListener('pageshow',resume);};
  },[]);
  const me=network.meta.get(network.id);
  const other=me?.seat&&[...network.meta].find(([id,x])=>id!==network.id&&x.seat?.swing===me.seat.swing);
@@ -141,6 +147,15 @@ function Crowd(){
  const mat=useMemo(()=>new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),[]);
  useEffect(()=>()=>{geo.stand.dispose();geo.sit.dispose();geo.far.dispose();mat.dispose();},[geo,mat]);
  const dummy=useMemo(()=>new THREE.Object3D(),[]);
+ useEffect(()=>{
+  const removeGone=e=>{
+   if(!['gone','disconnected','welcome'].includes(e.detail?.type))return;
+   const ids=[...detailSet.current].filter(id=>network.remotes.has(id));
+   detailSet.current=new Set(ids);detailKey.current=ids.join(',');setDetailed(ids);
+  };
+  window.addEventListener('school-network',removeGone);
+  return()=>window.removeEventListener('school-network',removeGone);
+ },[]);
  useFrame(()=>{const now=performance.now();for(const r of network.remotes.values())if(!network.bikeLinks.has(r.id))sampleMotion(r,now);},-2);
  useFrame((state,dt)=>{
   const cx=camera.position.x,cz=camera.position.z;
@@ -181,14 +196,15 @@ function Crowd(){
 function DetailedAvatar({id}){
  const ref=useRef(),[pose,setPose]=useState(null),poseKey=useRef('');
  useFrame(()=>{
-  const r=network.remotes.get(id);if(!r||!ref.current)return;
+  const r=network.remotes.get(id);if(!ref.current)return;
+  ref.current.visible=!!r;if(!r)return;
   const driverId=network.bikeLinks.get(id),driver=driverId===network.id?localPlayer:network.remotes.get(driverId);
   const position=driver?rearSeat(driver):r;
   ref.current.position.set(position.x,position.y,position.z);ref.current.rotation.y=driver?.yaw??r.yaw;
   const m=network.meta.get(id),look=network.looks.get(id)??0,key=`${r.mode}|${m?.action??''}|${m?.seat?.slot??''}|${m?.actionFrom??''}|${look}`;
   if(key!==poseKey.current){poseKey.current=key;setPose({mode:modeName(r.mode),ground:!!(r.mode&GROUND_FLAG),seat:m?.seat,action:m?.action,initiator:m?.actionFrom===id,dance:danceOf(r.mode),wheelie:isWheelie(r.mode),look});}
  });
- return <group ref={ref}><Nameplate profile={network.identities.get(id)} height={pose&&pose.mode!=='stand'? .97:1.35}/>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id} look={pose.look} wheelie={pose.wheelie}/>:pose.action||pose.seat?<CoupleBody player={pose}/>:<PosedBody pose={pose}/>)}</group>;
+ return <group ref={ref} name={`remote-player-${id}`}><Nameplate profile={network.identities.get(id)} height={pose&&pose.mode!=='stand'? .97:1.35}/>{pose&&(pose.dance?<DancerBody dance={pose.dance} seed={id} look={pose.look} wheelie={pose.wheelie}/>:pose.action||pose.seat?<CoupleBody player={pose}/>:<PosedBody pose={pose}/>)}</group>;
 }
 
 // Người chơi khác đứng / ngồi ở gần: đúng trang phục, gập đùi & gối theo tư thế ngồi ghế hoặc ngồi bệt

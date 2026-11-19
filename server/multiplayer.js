@@ -30,7 +30,7 @@ export const CONFIG={
  softBufferBytes:256*1024,         // hàng đợi gửi vượt mức này → bỏ qua gói vị trí tick này
  hardBufferBytes:2*1024*1024,      // vượt mức này liên tục quá slowGraceMs → ngắt kết nối
  slowGraceMs:15000,
- heartbeatMs:20000,
+ heartbeatMs:5000,
  msgPerSec:25,msgBurst:50,         // giới hạn tin nhắn đến mỗi kết nối
  abuseLimit:400,                   // số tin bị chặn trong 10 s trước khi ngắt
 };
