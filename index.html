@@ -1,1 +1,26 @@
-<!doctype html><html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>THPT An Dương · Ký ức sân trường</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+ <meta charset="UTF-8"/>
+ <meta name="viewport" content="width=device-width,initial-scale=1"/>
+ <title>THPT An Dương · Ký ức sân trường</title>
+</head>
+<body>
+ <div id="root"><p role="status" style="padding:1rem;font:1rem system-ui">Đang tải Ký ức sân trường…</p></div>
+ <template id="startup-error">
+  <div style="padding:1rem;font:1rem system-ui">
+   <p role="alert">Không tải được game. Hãy thử tải lại trang.</p>
+   <button type="button" onclick="location.reload()">Tải lại</button>
+  </div>
+ </template>
+ <script>
+  window.showStartupError = () => {
+   document.getElementById('root').replaceChildren(document.getElementById('startup-error').content.cloneNode(true));
+  };
+  window.addEventListener('error', event => {
+   if (event.target instanceof HTMLScriptElement && event.target.type === 'module') window.showStartupError();
+  }, true);
+ </script>
+ <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

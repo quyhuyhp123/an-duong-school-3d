@@ -6,7 +6,8 @@ import {World} from './World';
 import {DayCycle} from './DayCycle';
 import {GreetingBadge,GreetingModal} from './GreetingCard';
 import {useLive,EVENT_INFO,CAMPFIRE_POS} from './live';
-import {EventPill,ChatPanel} from './EventUI';
+import {EventPill,ChatDock,ChatPanel} from './EventUI';
+import {PrivateChat} from './PrivateChat';
 import {setEventSound,setListenerPosition,setMusic} from './eventAudio';
 import './style.css';
 import {Onboarding} from './Onboarding';
@@ -126,7 +127,10 @@ function App(){
     <nav className="top-nav"><OnlineCount/><button onClick={()=>setOnboard('creator')} title={describeProfile(profile)} aria-label="Nhân vật"><span className="ico" aria-hidden="true">👤</span><span className="lbl">Nhân vật</span></button><button onClick={()=>{setMap(true);setAlbum(false)}} aria-label="Bản đồ"><span className="ico" aria-hidden="true">🗺️</span><span className="lbl">Bản đồ</span><kbd>M</kbd></button></nav>
     {IS_TOUCH&&!onboard&&!prep&&!overview&&!basket&&!lab&&!map&&!album&&!greet&&<TouchControls near={near}/>}
     {!overview&&near&&!album&&!map&&!onboard&&!prep&&!greet&&!basket&&!lab&&<div className="prompt memory-prompt"><kbd>E</kbd> Mở kỷ niệm sân trường</div>}
-    {live.chatOpen&&<ChatPanel messages={live.chat} title={live.event?`Trò chuyện · ${EVENT_INFO[live.event].title}`:'Trò chuyện chung'}/>}
+    <ChatDock>
+     <PrivateChat position={position} enabled={!onboard&&!prep&&!overview&&!map&&!album&&!greet&&!basket&&!lab}/>
+     {live.chatOpen&&<ChatPanel messages={live.chat} title={live.event?`Trò chuyện · ${EVENT_INFO[live.event].title}`:'Trò chuyện chung'}/>}
+    </ChatDock>
     {greet&&<GreetingModal onClose={()=>setGreet(false)}/>}
     {map&&<div className="modal" role="dialog" aria-modal="true" aria-label="Bản đồ trường"><section className="map-panel"><button className="close" onClick={()=>setMap(false)} aria-label="Đóng bản đồ">×</button><small>KHUÔN VIÊN THEO ẢNH THAM CHIẾU</small><h2>Từ cổng trường qua hai hàng cau.</h2><div className="map-grid"><CampusMap position={position}/><div className="place-list"><p>Chọn điểm bắt đầu khám phá. Cầu thang đi bộ nối các tầng.</p>{data?.places.map(p=><button key={p.id} onClick={()=>visit(p.position)}>{p.label}<span>→</span></button>)}<button onClick={()=>visit(data?.spawn??[8,1,17])}>Về sân trường <span>→</span></button></div></div><p>Các vị trí và kích thước đang được ước lượng từ ảnh. Bàn ghế, phòng và cầu thang là bố trí cơ bản để khám phá, chưa phải bản đo hiện trạng.</p></section></div>}
     {album&&<MemoryAlbum onClose={()=>setAlbum(false)}/>}
@@ -136,4 +140,9 @@ function App(){
     {onboard&&<Onboarding key={onboard} start={onboard} onEnter={enterSchool}/>}
   </main>
 }
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root'),{
+ onUncaughtError(error){
+  console.error(error);
+  window.showStartupError();
+ },
+}).render(<App/>);

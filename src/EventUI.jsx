@@ -21,7 +21,7 @@ export function EventPill({event,note,onGo}){
 const fmtTime=iso=>{try{return new Date(iso).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}catch{return ''}};
 
 // Cửa sổ trò chuyện chung (mọi người đang ở trường đều thấy)
-export function ChatPanel({messages,title}){
+export function ChatDock({children}){
  const [chatTop,setChatTop]=useState(200);
  useLayoutEffect(()=>{
   const hud=document.querySelector('.hud-left');if(!hud)return;
@@ -29,15 +29,22 @@ export function ChatPanel({messages,title}){
   const observer=new ResizeObserver(place);observer.observe(hud);window.addEventListener('resize',place);place();
   return()=>{observer.disconnect();window.removeEventListener('resize',place);};
  },[]);
+ return <div className="chat-dock" style={{'--chat-top':`${chatTop}px`}}>{children}</div>;
+}
+export function ChatPanel({messages,title}){
  const [open,setOpen]=useState(false),[text,setText]=useState(''),[error,setError]=useState(null),[unread,setUnread]=useState(0);
  const profile=useProfile(),sender=identityLabel(profile);
- const list=useRef(),input=useRef(),seen=useRef(messages.length);
+ const list=useRef(),input=useRef();
 
  // Đếm tin chưa đọc khi đang thu nhỏ; tự cuộn xuống tin mới nhất khi đang mở
  useEffect(()=>{
-  if(open){seen.current=messages.length;setUnread(0);requestAnimationFrame(()=>{if(list.current)list.current.scrollTop=list.current.scrollHeight});}
-  else{setUnread(Math.max(0,messages.length-seen.current));if(messages.length<seen.current)seen.current=messages.length;}
+  if(open){setUnread(0);requestAnimationFrame(()=>{if(list.current)list.current.scrollTop=list.current.scrollHeight});}
  },[messages,open]);
+ useEffect(()=>{
+  const on=({detail})=>{if(!open&&detail?.type==='chat'&&detail.message?.authorId!==network.uid)setUnread(n=>n+1);};
+  window.addEventListener('school-live',on);
+  return ()=>window.removeEventListener('school-live',on);
+ },[open]);
  useEffect(()=>{const on=e=>{if(e.detail?.type==='chat-error'){setError(e.detail.message);setTimeout(()=>setError(null),3000);}};window.addEventListener('school-live',on);return()=>window.removeEventListener('school-live',on)},[]);
  // Nhấn Enter để mở khung chat, Esc để thu nhỏ
  useEffect(()=>{const on=e=>{if(e.target?.closest?.('input,textarea,select'))return;if(e.code==='Enter'&&!open){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};window.addEventListener('keydown',on);return()=>window.removeEventListener('keydown',on)},[open]);
@@ -48,8 +55,8 @@ export function ChatPanel({messages,title}){
   if(!network.send({type:'chat',text:t})){setError('Chưa kết nối máy chủ.');setTimeout(()=>setError(null),3000);return;}
   setText('');
  }
- if(!open)return <button className="chat-fab" style={{'--chat-top':`${chatTop}px`}} onClick={()=>{setOpen(true);setTimeout(()=>input.current?.focus(),0)}} aria-label="Mở trò chuyện chung">💬 <span>Trò chuyện</span>{unread>0&&<b className="chat-unread">{unread>99?'99+':unread}</b>}</button>;
- return <section className="chat-panel" style={{'--chat-top':`${chatTop}px`}} aria-label="Trò chuyện chung">
+ if(!open)return <button className="chat-fab" onClick={()=>{setOpen(true);setTimeout(()=>input.current?.focus(),0)}} aria-label="Mở trò chuyện chung">💬 <span>Trò chuyện</span>{unread>0&&<b className="chat-unread">{unread>5?'5+':unread}</b>}</button>;
+ return <section className="chat-panel" aria-label="Trò chuyện chung">
   <header><div><b>{title}</b><small>{network.online} người đang ở trường · Enter để mở</small></div><button onClick={()=>setOpen(false)} aria-label="Thu nhỏ">–</button></header>
   <div className="chat-list" ref={list}>
    {messages.length===0?<p className="chat-empty">Chưa có tin nhắn. Chào mọi người một câu nhé!</p>:

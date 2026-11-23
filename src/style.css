@@ -90,6 +90,11 @@ header{background:#fffaf0e8;padding:14px 18px;border-radius:8px}
 .chat-msg.mine .chat-name{color:#dfe4ff}
 .chat-time{font-size:10px;color:#8e94ad;margin-left:6px}
 .chat-empty{font-size:12px;color:#9ea4bd;text-align:center;margin:auto}
+.chat-dock{position:absolute;left:20px;bottom:20px;z-index:4;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-height:calc(100dvh - 40px)}
+.chat-dock .chat-fab,.chat-dock .chat-panel{position:relative;inset:auto}
+.chat-dock .chat-fab{flex-shrink:0}
+.chat-dock .chat-panel{min-height:0}
+.private-chat-panel header b{overflow-wrap:anywhere}
 .chat-error{margin:0;padding:6px 12px;font-size:12px;background:#ff2e8833;color:#ffd0e2}
 .chat-form{display:flex;gap:6px;padding:10px;border-top:1px solid #ffffff14}
 .chat-form input{min-width:0;flex:1;font:inherit;font-size:13px;padding:9px 10px;border-radius:9px;border:1px solid #ffffff22;background:#0b1020;color:#fff}
@@ -217,8 +222,8 @@ header .seal{display:grid}
 .tc-small{width:46px;height:46px;font-size:20px;background:#141a2ecc}.tc-small.on{background:#f2a516e6}
 /* ---------- Điện thoại / màn nhỏ: mọi thứ gọn lại ---------- */
 @media (max-width:760px),(pointer:coarse){
- .chat-fab{left:12px;top:var(--chat-top,200px);bottom:auto;z-index:4}
- .chat-panel{left:12px;top:var(--chat-top,200px);bottom:auto;z-index:4;width:min(360px,calc(100vw - 24px));height:min(440px,calc(100dvh - var(--chat-top,200px) - 16px))}
+ .chat-dock{left:12px;top:var(--chat-top,200px);bottom:auto;max-height:calc(100dvh - var(--chat-top,200px) - 16px)}
+ .chat-dock .chat-panel{width:min(360px,calc(100vw - 24px));height:min(440px,calc(100dvh - var(--chat-top,200px) - 16px))}
  .hud-left{top:12px;left:12px;gap:8px}
  .hud-left header{padding:0;gap:10px}.hud-left header .seal{width:42px;height:42px;font-size:17px;background:#faf4e9e6}
  .hud-left h1{font-size:20px;margin:2px 0}.hud-left header small{font-size:8px;letter-spacing:1.4px}.hud-left header p{font-size:11px}

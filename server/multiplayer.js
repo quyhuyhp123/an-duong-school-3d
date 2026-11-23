@@ -1,4 +1,5 @@
 import {characterIdentity} from '../src/characterIdentity.js';
+import {clean} from './store.js';
 import {bikeActions} from './bikeActions.js';
 import {readFileSync} from 'node:fs';
 import {isSharedBench,sameSeat,seatCapacity,seatOffset} from '../src/seating.js';
@@ -117,6 +118,31 @@ export function attachMultiplayer(server,options={}){
    if(!m||typeof m!=='object')return;
    if(bikeControl.handle(p,m))return;
    if(m.type==='chat'){postChat(p,m).then(error=>{if(error)send(p,{type:'chat-error',message:error})}).catch(()=>{});return;}
+   if(m.type==='private-open'||m.type==='private-message'){
+    const q=players.get(m.to);
+    const error=message=>send(p,{type:'private-error',message});
+    if(!q||q===p||!q.identity?.name||!p.identity?.name){error('Người chơi chưa sẵn sàng trò chuyện.');return;}
+    if(m.type==='private-open'){
+     if(p.privatePeers?.has(q))return;
+     const [x,y,z]=p.position,[qx,qy,qz]=q.position;
+     if(Math.hypot(x-qx,z-qz)>4||Math.abs(y-qy)>1.5){error('Hãy đến gần người chơi để bắt đầu trò chuyện.');return;}
+     if((p.privatePeers?.size??0)>=20||(q.privatePeers?.size??0)>=20){error('Đã đạt giới hạn cuộc trò chuyện riêng.');return;}
+     (p.privatePeers??=new Set()).add(q);
+     (q.privatePeers??=new Set()).add(p);
+     send(p,{type:'private-opened',peer:q.id,name:q.identity.name,initiated:true});
+     send(q,{type:'private-opened',peer:p.id,name:p.identity.name});
+    }else{
+     if(!p.privatePeers?.has(q)){error('Cuộc trò chuyện đã kết thúc.');return;}
+     const text=clean(m.text,200);
+     if(!text)return;
+     if(now-(p.lastPrivateMessage??0)<650){error('Bạn gửi hơi nhanh.');return;}
+     p.lastPrivateMessage=now;
+     const message={id:randomUUID(),text};
+     send(p,{type:'private-line',peer:q.id,message:{...message,mine:true}});
+     send(q,{type:'private-line',peer:p.id,message});
+    }
+    return;
+   }
    if(m.type==='sit'&&typeof m.id==='string'){
     const s=sharedBenches.get(m.id);if(!s||p.seat||p.bikeDriver||p.stageSlot!=null)return;
     if(Math.hypot(p.position[0]-s.position[0],p.position[2]-s.position[2])>3||Math.abs(p.position[1]-s.position[1])>2)return;
@@ -163,6 +189,11 @@ export function attachMultiplayer(server,options={}){
    if(m.type==='stop')end(p);
   });
   socket.on('close',()=>{
+   for(const peer of p.privatePeers??[]){
+    peer.privatePeers.delete(p);
+    send(peer,{type:'private-closed',peer:id});
+   }
+   p.privatePeers?.clear();
    end(p);players.delete(id);const k=active.indexOf(p);if(k>=0)active.splice(k,1);
    gone.push(id);freeSlots.push(id);metrics.gauge('players',players.size);
   });

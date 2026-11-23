@@ -144,6 +144,27 @@ try{
   t.send({type:'profile',look:128});t.send({type:'profile',look:'x'});await new Promise(r=>setTimeout(r,80));assert.equal(meta(a,t.id).look,3,'mã ngoại hình sai bị bỏ qua');
   const late=await client();await until(()=>late.messages.find(m=>m.type==='welcome'));assert.equal(meta(late,t.id)?.look,3,'người vào sau thấy đúng trang phục');
  }
+ {
+  const sender=await client(),receiver=await client();
+  sender.send({type:'profile',identity:{name:'Lan'}});
+  receiver.send({type:'profile',identity:{name:'Minh'}});
+  receiver.move(25,1,25);
+  await until(()=>meta(sender,receiver.id)?.identity?.name==='Minh'&&sender.seen.get(receiver.id)?.x===25);
+  sender.send({type:'private-open',to:receiver.id});
+  await until(()=>sender.messages.some(m=>m.type==='private-error'));
+  receiver.move(9,1,17);
+  await until(()=>sender.seen.get(receiver.id)?.x===9);
+  sender.send({type:'private-open',to:receiver.id});
+  await until(()=>receiver.messages.some(m=>m.type==='private-opened'&&m.name==='Lan'));
+  receiver.move(25,1,25);
+  await until(()=>sender.seen.get(receiver.id)?.x===25);
+  sender.send({type:'private-message',to:receiver.id,text:'Chao Minh'});
+  await until(()=>receiver.messages.some(m=>m.type==='private-line'&&m.message.text==='Chao Minh'));
+  assert.ok(!a.messages.some(m=>m.type==='private-line'));
+  receiver.ws.close();
+  await until(()=>sender.messages.some(m=>m.type==='private-closed'&&m.peer===receiver.id));
+  console.log('PASS private chat proximity, private delivery, retention across distance, disconnect cleanup');
+ }
  // Gói rác / sai kích thước bị bỏ qua, không làm sập server
  a.ws.send(Buffer.from([1,2,3]));a.ws.send('not json');a.ws.send(JSON.stringify(null));await new Promise(r=>setTimeout(r,50));assert.equal(a.ws.readyState,1);
  console.log('PASS binary positions, delta suppression, distinct seats, stage slots (10 exclusive, full, reuse, disconnect; hall stage 10 separate), full seat rejection, consent, refusal, forged acceptance rejection, paired action, leave cancellation, disconnect cleanup, avatar looks, malformed input');
