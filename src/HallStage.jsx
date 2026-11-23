@@ -10,8 +10,6 @@ import {RigidBody,CuboidCollider} from '@react-three/rapier';
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {NpcDancer,DANCER_LOOKS} from './TeachersDayStage';
-import {stageDancersVisible} from './stageSchedule';
-import {currentHour} from './DayCycle';
 import {useNearVisible} from './useNearVisible';
 import {useMergeStatic} from './mergeStatic';
 import {useLightSources} from './lightPool';
@@ -185,10 +183,8 @@ function HallDecor(){
 
 // ---------- Đội múa 10 người trên sân khấu nhà đa năng (ô 10 → 19 trong stageSlots.js) ----------
 // Người chơi bước lên sân khấu nhấn F → thay chỗ một vũ công (vũ công ô đó ẩn đi), rời đi thì vũ công quay lại.
-function HallDancers({event}){
- const group=useRef();
- useFrame(()=>{if(group.current)group.current.visible=stageDancersVisible(currentHour(),event);});
- return <group ref={group}>{Array.from({length:10},(_,i)=><NpcDancer key={i} slot={10+i} look={DANCER_LOOKS[(i+3)%DANCER_LOOKS.length]} rot={Math.PI}/>)}</group>;
+function HallDancers(){
+ return <group>{Array.from({length:10},(_,i)=><NpcDancer key={i} slot={10+i} look={DANCER_LOOKS[(i+3)%DANCER_LOOKS.length]} rot={Math.PI}/>)}</group>;
 }
 
 // ---------- Đèn trần nhà đa năng (bật cả ngày: mái che kín nên trong nhà tối) ----------
@@ -216,5 +212,5 @@ function HallLights(){
 
 export function HallStage({event}){
  const ref=useNearVisible([64.5,0,33.5],40); // chỉ vẽ khi camera trong / gần nhà đa năng (va chạm ghế, bàn vẫn luôn hoạt động)
- return <group ref={ref}><HallLights/><HallDecor/><TeacherTables/><HallChairs/><HallDancers event={event}/></group>;
+ return <group ref={ref}><HallLights/>{event==='teachers'&&<><HallDecor/><HallDancers/></>}<TeacherTables/><HallChairs/></group>;
 }

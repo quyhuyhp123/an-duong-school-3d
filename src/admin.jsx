@@ -14,9 +14,10 @@ async function api(path,{method='GET',body,token}={}){
  return data;
 }
 const fmt=iso=>{try{return new Date(iso).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return ''}};
-const isNight=()=>{const d=new Date(),h=d.getHours()+d.getMinutes()/60;return h>=18.5||h<5};
+import {isEventNight as isNight} from './eventSchedule';
 
 const EVENT_CARDS=[
+ {id:'teachers',icon:'🌸',title:'Ngày Nhà giáo Việt Nam 20/11',desc:'Hoa, bóng bay và 10 học sinh múa tại mỗi sân khấu.'},
  {id:'none',icon:'🌙',title:'Không có sự kiện',desc:'Sân trường yên tĩnh như bình thường.'},
  {id:'dj',icon:'🎧',title:'Đêm nhạc DJ',desc:'Bàn DJ trên sân khấu xanh, loa, đèn quét nhiều màu và sàn nhảy phát sáng theo nhạc.'},
  {id:'campfire',icon:'🔥',title:'Lửa trại',desc:'Đống lửa giữa sân, 7 khúc gỗ để mọi người đến ngồi quây quần (nhấn F).'},
@@ -106,14 +107,14 @@ function EventsTab({data,token,onSaved,notify}){
    <div className="card-head"><div><h2>Sự kiện</h2><p>Chọn sự kiện diễn ra ở sân trường.</p></div>
     <span className={'status '+(data.config.event==='none'?'idle':(data.config.schedule==='always'||isNight())?'on':'wait')}>{data.config.event==='none'?'Không có sự kiện':(data.config.schedule==='always'||isNight())?'● Đang diễn ra':'Chờ trời tối (18:30)'}</span>
    </div>
-   <div className="event-grid">{EVENT_CARDS.map(c=><button key={c.id} className={'event-card'+(form.event===c.id?' selected':'')+' ev-'+c.id} onClick={()=>setForm(f=>({...f,event:c.id}))} aria-pressed={form.event===c.id}>
+   <div className="event-grid">{EVENT_CARDS.map(c=><button key={c.id} className={'event-card'+(form.event===c.id?' selected':'')+' ev-'+c.id} onClick={()=>setForm(f=>({...f,event:c.id,schedule:c.id==='teachers'?'always':f.schedule}))} aria-pressed={form.event===c.id}>
     <span className="ev-icon">{c.icon}</span><b>{c.title}</b><span className="ev-desc">{c.desc}</span>{form.event===c.id&&<span className="ev-check">✓</span>}
    </button>)}</div>
   </section>
   <div className="two-col">
    <section className="card"><h3>Thời gian diễn ra</h3>
-    {Object.entries(data.options.schedules).map(([id,label])=><label key={id} className="radio"><input type="radio" name="schedule" checked={form.schedule===id} onChange={()=>setForm(f=>({...f,schedule:id}))}/><span>{label}</span></label>)}
-    <p className="muted">Giờ "trời tối" tính theo đồng hồ máy của từng người chơi, khớp với chu kỳ ngày – đêm trong game.</p>
+    {Object.entries(data.options.schedules).map(([id,label])=><label key={id} className="radio"><input type="radio" name="schedule" checked={form.schedule===id} disabled={form.event==='teachers'} onChange={()=>setForm(f=>({...f,schedule:id}))}/><span>{label}</span></label>)}
+    <p className="muted">Lịch buổi tối chạy từ 18:30 đến 05:00 theo giờ Việt Nam (UTC+7).</p>
    </section>
    <section className="card"><h3>Phòng trò chuyện chung</h3>
     {Object.entries(data.options.chat).map(([id,label])=><label key={id} className="radio"><input type="radio" name="chat" checked={form.chat===id} onChange={()=>setForm(f=>({...f,chat:id}))}/><span>{label}</span></label>)}

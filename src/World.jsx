@@ -8,7 +8,6 @@ import {BikeActions} from './BikeActions';
 import {classroomLayout} from './classroomLayout';
 import {ClassroomBoards} from './ClassroomBoards';
 import {mainGateBikeZone} from './transport';
-import {currentHour} from './DayCycle';
 import {stageDancersVisible} from './stageSchedule';
 import {Multiplayer,network,CoupleBody,SCREEN_HUD} from './multiplayer';
 import {modeCode} from './protocol';
@@ -267,7 +266,7 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
   if(state.clock.elapsedTime-lastBikeCheck.current>.2){lastBikeCheck.current=state.clock.elapsedTime;
    const bay=mode.current==='stand'&&performSlot.current==null?nearestBay(p.x,p.y,p.z,!riding.current):null;
    if(bay?.id!==bikeNear.current?.id){bikeNear.current=bay;setBikeHint(bay);}}
-  const stageAvailable=stageDancersVisible(currentHour(),event);
+  const stageAvailable=stageDancersVisible(event);
   if(!stageAvailable&&performSlot.current!=null)choose('stand');
   const which=stageAvailable?stageAt(p.x,p.y,p.z):-1,st=which>=0;if(st!==stageZone.current){stageZone.current=st;setStageHint(st);}if(which!==stageWhichRef.current){stageWhichRef.current=which;setStageWhich(which);}
   const inZone=event==='dj'&&inDJZone(p.x,p.y,p.z);if(inZone!==djZone.current){djZone.current=inZone;setDjHint(inZone);}
@@ -329,4 +328,4 @@ export const World=memo(function World(props){const [boardEditing,setBoardEditin
  // Lửa trại thêm các khúc gỗ vào danh sách chỗ ngồi (nhấn F để ngồi)
  const classroom=useMemo(()=>classroomLayout(data.rooms??[]),[data]);
  const playerData=useMemo(()=>({...data,seats:[...(data.seats??[]),...classroom.seats,...HALL_SEATS,...SHOP_SEATS,...(props.event==='campfire'?CAMPFIRE_SEATS:[])]}),[data,props.event,classroom]);
- return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/><GateLED/><primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}><StaticColliders colliders={data.colliders}/></RigidBody><TeachersDayStage event={props.event}/><LightPool/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><Canteen/><PhotoRoom/><PondFish/><Clouds/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});
+ return <NameplatesVisible.Provider value={!props.paused&&!props.overview}><Multiplayer/>{props.event==='teachers'&&<GateLED/>}<primitive object={scene}/><Physics gravity={[0,-16,0]} timeStep={1/60} updatePriority={-1} interpolate><RigidBody type="fixed" colliders={false}><StaticColliders colliders={data.colliders}/></RigidBody><TeachersDayStage event={props.event}/><LightPool/><CourtyardLamps/><ParkingLights/><StreetLights/><WallMurals/><ParkedBikes/><ParkingGuard/><GateGreeters/><FlowerPots/><GateBoard/><HallStage event={props.event}/><Shops/><Canteen/><PhotoRoom/><PondFish/><Clouds/><NightEvents event={props.event}/><ClassroomBoards boards={classroom.boards} paused={props.paused||props.overview} onEditing={setBoardEditing}/><Player {...props} paused={props.paused||boardEditing} data={playerData}/></Physics>{props.overview&&<OrbitControls target={[14,1,0]} minDistance={15} maxDistance={200} maxPolarAngle={Math.PI/2-.035}/>}</NameplatesVisible.Provider>});

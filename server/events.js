@@ -6,7 +6,7 @@ import {jsonFile,clean} from './store.js';
 import {metrics} from './metrics.js';
 import {findMusic,musicUrl} from './music.js';
 
-export const EVENTS={none:'Không có sự kiện',dj:'Đêm nhạc DJ',campfire:'Lửa trại giữa sân'};
+export const EVENTS={none:'Không có sự kiện',dj:'Đêm nhạc DJ',campfire:'Lửa trại giữa sân',teachers:'Ngày Nhà giáo Việt Nam 20/11'};
 export const SCHEDULES={night:'Chỉ khi trời tối (18:30 – 05:00)',always:'Bật ngay, cả ban ngày'};
 export const CHAT_MODES={event:'Mở trong lúc sự kiện diễn ra',always:'Luôn mở',off:'Tắt'};
 // musicId: bài admin chọn cho Đêm nhạc DJ (null = nhạc điện tử tự tạo); musicVolume 0..1; musicStartedAt: mốc để mọi người nghe cùng đoạn
@@ -30,7 +30,7 @@ export async function setConfig(input){
  const cur=await getConfig();
  return save({...cur,
   event:Object.hasOwn(EVENTS,input?.event)?input.event:'none',
-  schedule:Object.hasOwn(SCHEDULES,input?.schedule)?input.schedule:'night',
+  schedule:input?.event==='teachers'?'always':Object.hasOwn(SCHEDULES,input?.schedule)?input.schedule:'night',
   chat:Object.hasOwn(CHAT_MODES,input?.chat)?input.chat:'event',
   note:clean(input?.note,120),
   updatedAt:new Date().toISOString()});

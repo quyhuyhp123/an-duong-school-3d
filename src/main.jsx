@@ -119,7 +119,7 @@ function App(){
     {/* góc trái trên: tên trường (bấm để thu gọn chỉ còn vòng tròn AD) → thiệp 20/11 → sự kiện đang diễn ra */}
     <div className="hud-left">
      <header className={compact?'compact':''} onClick={()=>setCompact(v=>!v)} title={compact?'Hiện tên trường':'Thu gọn'}><div className="seal">AD</div><div className="hdr-text"><small>HẢI PHÒNG · KHÔNG GIAN KỶ NIỆM</small><h1>THPT An Dương</h1><p>Ký ức sân trường</p></div></header>
-     <GreetingBadge onOpen={()=>{setGreet(true);setAlbum(false);setMap(false)}}/>
+     {live.event==='teachers'&&<GreetingBadge onOpen={()=>{setGreet(true);setAlbum(false);setMap(false)}}/>}
      {live.event&&<EventPill event={live.event} note={live.note} onGo={()=>visit(EVENT_INFO[live.event].spot)}/>}
     </div>
     {/* góc phải trên: nhân vật & bản đồ (điện thoại: chỉ biểu tượng) */}

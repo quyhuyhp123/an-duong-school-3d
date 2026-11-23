@@ -1,5 +1,3 @@
-import {currentHour} from './DayCycle';
-import {stageDancersVisible} from './stageSchedule';
 // Trang trí sân khấu xanh chào mừng Ngày Nhà giáo Việt Nam 20/11:
 // phông nền 20/11, lẵng hoa tươi chân đứng, bồn hoa mép sân khấu, cột bóng bay quanh trụ, dây cờ đuôi nheo, đèn nháy, thảm đỏ.
 // Hoa/lá/bóng/cờ vẽ bằng InstancedMesh (mỗi loại 1 lệnh vẽ) nên vài nghìn bông vẫn nhẹ.
@@ -217,7 +215,7 @@ export function NpcDancer({slot,look,pos,rot=0,linked=true}){
   </group>)}
  </group></group>;
 }
-function StageDancers({event}){const group=useRef();useFrame(()=>{if(group.current)group.current.visible=stageDancersVisible(currentHour(),event)});return <group ref={group} visible={stageDancersVisible(currentHour(),event)}>{STAGE_SLOTS.slice(0,10).map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>)}</group>;}
+function StageDancers(){return <group>{STAGE_SLOTS.slice(0,10).map((_,i)=><NpcDancer key={i} slot={i} look={DANCER_LOOKS[i]}/>)}</group>;}
 
 export function TeachersDayStage({event}){
  const decor=useMemo(buildDecor,[]);
@@ -238,10 +236,10 @@ export function TeachersDayStage({event}){
  const applyBowl=useMemo(()=>(d,p)=>{d.position.set(...p);d.rotation.set(0,0,0);d.scale.setScalar(1);},[]);
  const balloonRef=useRef();useLightSources(STAGE_LIGHTS);
  return <group>
-  <Backdrop/>
-  <StageDancers event={event}/>
+  {event==='teachers'&&<><Backdrop/><StageDancers/></>}
   {/* đèn vàng ấm dưới mái sân khấu — làm hoa và phông nổi bật khi trời tối */}
   <FairyLights/>
+  {event==='teachers'&&<>
   <Bunting/>
   {/* hoa, lá, bóng bay, chân lẵng, giỏ: mỗi loại 1 lệnh vẽ */}
   <Instanced items={decor.flowers} geometry={res.flower} material={res.flowerMat} apply={applyFlower}/>
@@ -254,10 +252,11 @@ export function TeachersDayStage({event}){
   {/* bồn hoa gỗ dọc mép sân khấu */}
   {PLANTERS.map(([cx])=><mesh key={cx} castShadow receiveShadow position={[cx,STAGE_Y+.18,FRONT_Z-.32]}><boxGeometry args={[3.4,.36,.5]}/><meshStandardMaterial color="#f4efe2" roughness={.8}/></mesh>)}
   {/* thảm đỏ phủ theo từng bậc thềm giữa rồi kéo lên sàn sân khấu */}
-  <RedCarpet/>
   {/* không đi xuyên lẵng hoa / bồn hoa */}
   <RigidBody type="fixed" colliders={false}>
    {BASKETS.map(([x,y,z],i)=><CylinderCollider key={i} args={[1.2,.42]} position={[x,y+1.2,z]}/>)}
   </RigidBody>
+  </>}
+  <RedCarpet/>
  </group>;
 }
