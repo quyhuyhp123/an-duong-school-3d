@@ -13,7 +13,7 @@ import './style.css';
 import {Onboarding} from './Onboarding';
 // mini-game bóng rổ: tải khi mở game (không nằm trong gói tải đầu trang)
 const BasketballGame=React.lazy(()=>import('./Basketball').then(m=>({default:m.BasketballGame})));
-import {MemoryAlbum} from './MemoryAlbum';
+import {MemoryAlbum,startAlbumMusic} from './MemoryAlbum';
 import {LabComputer} from './LabComputer';
 import {SchoolDrum} from './SchoolDrum';
 import {Prewarm} from './Prewarm';
@@ -80,7 +80,7 @@ function App(){
   useEffect(()=>{const open=e=>{setBasket(e.detail==='flap'?'flap':'shoot');setMap(false);setAlbum(false);};window.addEventListener('open-basketball',open);return()=>window.removeEventListener('open-basketball',open);},[]);
   const profile=useProfile(),[onboard,setOnboard]=useState('welcome'); // màn hình chào / chọn nhân vật (null = đang chơi)
   const [data,setData]=useState(null),[position,setPosition]=useState({x:8,y:1,z:17}),[destination,setDestination]=useState(()=>({position:entryFor(getProfile()?.transport==='bike'?'bike':'walk'),yaw:0,time:0})); // ngay từ đầu nhân vật đứng ở cổng (sau màn hình chào camera đã khoá sẵn sau lưng)
-  useEffect(()=>{const fn=e=>{if(e.repeat||greet||onboard||prep||basket||lab||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map)setAlbum(v=>!v);if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[near,map,greet,onboard,prep,basket,lab]);
+  useEffect(()=>{const fn=e=>{if(e.repeat||greet||onboard||prep||basket||lab||e.target?.closest?.('input,textarea,select'))return;if(e.code==='KeyE'&&near&&!map){if(!album)startAlbumMusic().catch(()=>{});setAlbum(!album);}if(e.code==='Escape'){setAlbum(false);setMap(false)}if(e.code==='KeyM'){setMap(v=>!v);setAlbum(false)}};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[album,near,map,greet,onboard,prep,basket,lab]);
   // Sự kiện ban đêm do trang quản lý chọn (DJ / lửa trại) + phòng trò chuyện
   const live=useLive();
   useEffect(()=>{setEventSound(live.event,live.event==='dj'?[0,0,-28]:live.event==='campfire'?CAMPFIRE_POS:null)},[live.event]);

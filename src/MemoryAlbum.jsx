@@ -10,14 +10,27 @@ import manifest from './albumManifest.json';   // bản nén WebP do `npm run al
 
 // Nhạc nền album: phát khi mở hồi ức (nhấn E = thao tác người dùng nên trình duyệt cho phép phát), tắt khi đóng.
 // Tôn trọng nút tắt tiếng chung của trang.
+let albumTrack;
+export function startAlbumMusic(){
+ if(!albumTrack){
+  albumTrack=new Audio(song);
+  albumTrack.loop=true;
+  albumTrack.volume=.6;
+ }
+ albumTrack.muted=isMuted();
+ return albumTrack.play();
+}
 function useAlbumMusic(){
+ const [needsPlay,setNeedsPlay]=useState(false);
  useEffect(()=>{
   setAlbumAudio(true);
-  const a=new Audio(song);a.loop=true;a.volume=.6;a.muted=isMuted();
-  a.play().catch(()=>{});
+  let active=true;
+  startAlbumMusic().catch(()=>{if(active)setNeedsPlay(true);});
+  const a=albumTrack;
   const off=onMuteChange(v=>{a.muted=v;});
-  return()=>{off();a.pause();a.removeAttribute('src');a.load();setAlbumAudio(false);};
+  return()=>{active=false;off();a.pause();a.removeAttribute('src');a.load();albumTrack=null;setAlbumAudio(false);};
  },[]);
+ return {needsPlay,retry:()=>startAlbumMusic().then(()=>setNeedsPlay(false)).catch(()=>setNeedsPlay(true))};
 }
 
 const files=Object.entries(import.meta.glob('../image/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}',{eager:true,query:'?url',import:'default'}));
@@ -38,7 +51,7 @@ export const PHOTOS=files.map(([path,original])=>{
 export function MemoryAlbum({onClose}){
  const [i,setI]=useState(0),n=PHOTOS.length,thumbs=useRef(),swipe=useRef(null);
  const go=d=>setI(v=>(v+d+n)%n);
- useAlbumMusic();
+ const {needsPlay,retry}=useAlbumMusic();
  useEffect(()=>{const k=e=>{if(e.code==='ArrowRight'){e.preventDefault();go(1);}if(e.code==='ArrowLeft'){e.preventDefault();go(-1);}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[n]);
  // tải trước ảnh kề bên → chuyển ảnh không phải chờ
  useEffect(()=>{for(const d of [1,-1,2]){const p=PHOTOS[(i+d+n)%n];if(p){const im=new Image();im.src=p.url;}}},[i,n]);
@@ -50,6 +63,7 @@ export function MemoryAlbum({onClose}){
   <section className="ma-card">
    <header className="ma-head">
     <div><small>KÝ ỨC THPT AN DƯƠNG</small><h2>Nhật ký sân trường</h2></div>
+    {needsPlay&&<button type="button" onClick={retry}>♫ Phát nhạc</button>}
     <span className="ma-count">{i+1} / {n}</span>
     <button className="close" onClick={onClose} aria-label="Đóng">×</button>
    </header>

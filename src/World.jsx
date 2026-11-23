@@ -1,4 +1,4 @@
-import {WHEELIE_FLAG,BIKE_FIRE_FLAG,wheelieTransform,rearWheelSpinOffset} from './bikeWheelie.js';
+import {WHEELIE_FLAG,BIKE_FIRE_FLAG,BIKE_SPIN_FLAG,BIKE_SPIN_SPEED,wheelieTransform,rearWheelSpinOffset} from './bikeWheelie.js';
 import {isSharedBench} from './seating.js';
 import {seatedCamera} from './seatedCamera.js';
 import {Nameplate,NameplatesVisible} from './Nameplate';
@@ -139,7 +139,7 @@ const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);bod
   const down=e=>{
    if(e.target?.closest?.('input,textarea,select'))return;
    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
-   if(riding.current&&!overview&&!paused&&e.code==='KeyL'&&e.ctrlKey){e.preventDefault();if(!e.repeat)setBikeFire(v=>!v);delete keys.current.KeyL;return;}
+   if(riding.current&&!overview&&!paused&&e.ctrlKey&&(e.code==='KeyP'||e.code==='KeyL')){e.preventDefault();if(!e.repeat)setBikeFire(v=>!v);delete keys.current[e.code];return;}
    if(riding.current&&!overview&&!paused&&e.code==='KeyG'&&e.ctrlKey){e.preventDefault();if(!e.repeat){if(spinWheelie.current&&body.current){const p=body.current.translation(),next={x:p.x+spinOffset.current.x,y:p.y,z:p.z+spinOffset.current.z};body.current.setTranslation(next,true);body.current.setNextKinematicTranslation(next);}else spinAnchorYaw.current=avatar.current.rotation.y;spinWheelie.current=!spinWheelie.current;spinOffset.current.x=spinOffset.current.z=0;}delete keys.current.KeyG;return;}
    if(riding.current&&!overview&&!paused&&e.code==='KeyA'&&e.ctrlKey){e.preventDefault();if(!e.repeat)wheelie.current=!wheelie.current;delete keys.current.KeyA;return;}
    if(e.code==='KeyF'&&!e.repeat&&!overview&&!paused){
@@ -202,7 +202,7 @@ const [x,y,z]=destination.position;body.current.setTranslation({x,y,z},true);bod
   avatar.current.position.y=-.83-(ground?.72:.38)*blend.current;
   const spinning=riding.current&&spinWheelie.current&&!paused&&!overview;
   if(walk.current&&!spinning){const a=Math.atan2(direction.x,direction.z);avatar.current.rotation.y+=(THREE.MathUtils.euclideanModulo(a-avatar.current.rotation.y+Math.PI,Math.PI*2)-Math.PI)*(1-Math.exp(-16*delta));}
-  if(spinning)avatar.current.rotation.y=THREE.MathUtils.euclideanModulo(avatar.current.rotation.y+Math.min(delta,.05)*4.2,Math.PI*2);
+  if(spinning)avatar.current.rotation.y=THREE.MathUtils.euclideanModulo(avatar.current.rotation.y+Math.min(delta,.05)*BIKE_SPIN_SPEED,Math.PI*2);
   avatar.current.traverse(o=>{if(o.name==='thigh'){o.rotation.x=sitPose.thigh*blend.current+(walk.current?Math.sin(state.clock.elapsedTime*walk.current*2.6)*(o.position.x<0?-.4:.4):0)*(1-blend.current);o.rotation.z=(mode.current==='relaxed'?(o.position.x<0?-.22:.22):0)*blend.current;}if(o.name==='shin')o.rotation.x=sitPose.shin*blend.current;});
   // Nhảy theo nhịp nhạc (tay, chân, nhún, xoay người); chuyển mượt khi bắt đầu/dừng
   danceW.current=THREE.MathUtils.damp(danceW.current,dance.current?1:0,8,delta);
@@ -272,7 +272,7 @@ setLocalPlayer(renderedRoot.x,renderedRoot.y,renderedRoot.z);
   const inZone=event==='dj'&&inDJZone(p.x,p.y,p.z);if(inZone!==djZone.current){djZone.current=inZone;setDjHint(inZone);}
   if(shouldStopForEvent(dance.current,event))stopDance(); // nhạc hội kết thúc → dừng nhảy
   // Gửi vị trí: network.sendMove tự gộp (tối đa 10 lần/giây, chỉ khi thay đổi)
-  if(destination&&!passengerDriver.current)network.sendMove(p.x+spinOffset.current.x,p.y,p.z+spinOffset.current.z,dance.current?baseYaw.current:avatar.current.rotation.y,(modeCode(mode.current,groundSit.current,riding.current?RIDE:dance.current)|(spinning||(riding.current&&wheelie.current&&walk.current&&!paused&&!overview)?WHEELIE_FLAG:0)|(riding.current&&bikeFire?BIKE_FIRE_FLAG:0)));
+  if(destination&&!passengerDriver.current)network.sendMove(p.x+spinOffset.current.x,p.y,p.z+spinOffset.current.z,dance.current?baseYaw.current:avatar.current.rotation.y,(modeCode(mode.current,groundSit.current,riding.current?RIDE:dance.current)|(spinning||(riding.current&&wheelie.current&&walk.current&&!paused&&!overview)?WHEELIE_FLAG:0)|(spinning?BIKE_SPIN_FLAG:0)|(riding.current&&bikeFire?BIKE_FIRE_FLAG:0)));
   if(state.clock.elapsedTime-report.current>.2){
    report.current=state.clock.elapsedTime;
    const last=lastReportedPosition.current;

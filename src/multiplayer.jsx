@@ -1,4 +1,4 @@
-import {isWheelie,hasBikeFire,wheelieTransform} from './bikeWheelie.js';
+import {isWheelie,hasBikeFire,isBikeSpinning,wheelieTransform} from './bikeWheelie.js';
 import {sameSeat} from './seating.js';
 import {Nameplate} from './Nameplate';
 import {characterIdentity} from './characterIdentity.js';
@@ -62,7 +62,7 @@ function onSnapshot(buffer){
   const yaw=yawOf(yq);let r=network.remotes.get(id);
   if(!r){r={id,x,y,z,yaw,tx:x,ty:y,tz:z,tyaw:yaw,mode};network.remotes.set(id,r);}
   // nhảy xa (dịch chuyển, vào chỗ ngồi) → đặt thẳng, không trượt xuyên tường
-  pushMotion(r,x,y,z,yaw,at);r.mode=mode;
+  pushMotion(r,x,y,z,yaw,at,isBikeSpinning(mode));r.mode=mode;
  });
 }
 

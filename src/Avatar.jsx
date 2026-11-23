@@ -58,7 +58,7 @@ function outfit({teacher,female,winter,color}){
 export function AvatarBody({look=0,eyes=true,expression=null,joinedSide=0,fireHair=false}){
  const mergeRef=useRef();useMergeStatic(mergeRef,'joint',[look,eyes,expression,joinedSide,fireHair]); // mỗi khớp còn vài khối thay vì hàng chục mảnh
  const L=decodeLook(look),o=outfit(L);
- const hair=fireHair?{c:'#ff6820',emissive:'#ff3608',emissiveIntensity:.85}:{c:HAIR};
+ const hair=fireHair?{c:'#28ddff',emissive:'#007cff',emissiveIntensity:.85}:{c:HAIR};
  // Nữ: thân thon (eo nhỏ), vai hẹp, tay chân mảnh; tóc dài buộc nơ; môi hồng; học sinh nữ ba lô hồng, mùa hè mặc chân váy xếp ly
  const F=L.female,torsoR=F?.205:.25,R=torsoR+.007,armX=F?.285:.32,armR=F?.068:.085,thighR=F?.088:.105,shinR=F?.078:.09;
  const legC=F&&o.skirt?SKIN:o.pants,bagC=F?(L.winter?'#d9668f':'#f08bb0'):(L.winter?'#2a2a2a':'#58766e');
